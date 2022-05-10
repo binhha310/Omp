@@ -1,0 +1,17 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src/dev"
+  "src/main"
+  "src/test"]
+
+ :dependencies
+ [[reagent "1.1.1"]
+ [cider/cider-nrepl "0.27.3"]]
+
+ :builds
+ {:app
+  {:target :react-native
+   :init-fn app.main/init
+   :output-dir "target"
+   :js-options {:js-package-dirs ["node_modules"]}
+   :devtools {:autoload true}}}}
