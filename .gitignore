@@ -374,5 +374,8 @@ target/
 # Shadow-cljs
 .shadow-cljs/
 
+# deps.edn
+.cpcache/
+
 # End of https://www.toptal.com/developers/gitignore/api/reactnative,emacs
 n

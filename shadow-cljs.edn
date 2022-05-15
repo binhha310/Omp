@@ -1,13 +1,5 @@
 ;; shadow-cljs configuration
-{:source-paths
- ["src/dev"
-  "src/main"
-  "src/test"]
-
- :dependencies
- [[reagent "1.1.1"]
- [cider/cider-nrepl "0.27.3"]]
-
+{:deps true
  :builds
  {:app
   {:target :react-native
