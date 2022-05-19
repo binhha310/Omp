@@ -71,7 +71,7 @@
                 :overlaps true
                 :finished-by true
                 false)
-   :color "#000000"})
+   :color "#50fa7b"})
 
 (defn- trans-decorator []
   {:color "transparent"})
@@ -89,15 +89,16 @@
   (if (include? interval date)
     (let [period (period-decorator interval date)
           trans (trans-decorator)]
-      (update-in decor-map
-                 [(keyword date) :periods]
-                 #(conj-vector % pos period trans)))
+      (-> decor-map
+        (update-in [(keyword date) :periods] #(conj-vector % pos period trans))
+        (assoc-in [(keyword date) :disableTouchEvent] false)))
       decor-map))
 
 (defn- update-decor-date-coll [m coll indexes date]
   (let [coll (partition 2 (interleave indexes coll))
-        f #(update-decor-date % (first %2) (last %2) date)]
-    (reduce f m coll)))
+        f #(update-decor-date % (first %2) (last %2) date)
+        result (reduce f m coll)]
+      result))
 
 (defn- count-day [i]
   (-> (t/range
