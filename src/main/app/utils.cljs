@@ -1,4 +1,6 @@
-(ns app.utils)
+(ns app.utils
+  (:require
+   [tick.core :as t]))
 
 (defn year-dates [year]
   (let [year (if (number? year) (t/year year) year)

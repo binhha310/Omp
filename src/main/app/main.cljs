@@ -3,12 +3,14 @@
    [shadow.react-native :refer (render-root)]
    ["react-native" :as rn]
    [reagent.core :as r]
+   [re-frame.core :as rf]
    ["react-native-calendars" :refer (Calendar)]
    ["react-native-paper" :refer (DarkTheme Appbar Provider List FAB)]
    ["react-native-date-picker" :default DatePicker]
    [tick.core :as t]
    [tick.alpha.interval :as t.i]
-   [app.event :as e]))
+   [app.event :as e]
+   [app.calendar-theme :as theme]))
 
 ;; must use defonce and must refresh full app so metro can fill these in
 ;; at live-reload time `require` does not exist and will cause errors
@@ -26,8 +28,6 @@
            {:fontWeight "bold"
             :fontSize 24
             :color "blue"}
-           :calendar
-           {:height "100%"}
            :fab
            {:position "absolute"
             :margin 16
@@ -44,29 +44,18 @@
           (clj->js)
           (rn/StyleSheet.create)))
 
-;; (defn counter []
-;;   (let [count (r/atom 0)]
-;;     (fn []
-;;       [:> rn/View {:style (.-container styles)}
-;;        [:> rn/Text "atom's current value: " @count ". "]
-;;        [:> rn/Button {:on-press #(swap! count inc) :title "Increase"}]])))
+;; (defn app-bar []
+;;   [:> Appbar {:style (.-appbar styles)}])
 
-(defn app-bar []
-  [:> Appbar {:style (.-appbar styles)}])
-
-(defn sub-list [title]
-  (fn []
-    [:> (.-Section List) {:style (.-list styles)}
-     [:> (.-Subheader List) title]
-     [:> (.-Item List) {:title "First item"}]
-     [:> (.-Item List) {:title "First item"}]
-     [:> (.-Item List) {:title "First item"}]
-     [:> (.-Item List) {:title "First item"}]
-     [:> (.-Item List) {:title "First item"}]]))
-
-(defn calendar []
-  [:> Calendar {:marked-dates (clj->js {:2022-05-16 {:marked true}})
-                :on-day-press (fn [day] (println day))}])
+;; (defn sub-list [title]
+;;   (fn []
+;;     [:> (.-Section List) {:style (.-list styles)}
+;;      [:> (.-Subheader List) title]
+;;      [:> (.-Item List) {:title "First item"}]
+;;      [:> (.-Item List) {:title "First item"}]
+;;      [:> (.-Item List) {:title "First item"}]
+;;      [:> (.-Item List) {:title "First item"}]
+;;      [:> (.-Item List) {:title "First item"}]]))
 
 (defn locale-format [date]
   (.toLocaleString date))
@@ -111,67 +100,55 @@
                 (t/date-time "2022-05-11T12:00")
                 (t/date-time "2022-05-19T12:00")))
 
+(def interval5 (t.i/new-interval
+                (t/date-time "2022-05-25T12:00")
+                (t/date-time "2022-06-05T12:00")))
 
-(def calendar-theme {:backgroundColor "#282a36"
-                     :calendarBackground "#282a36"
-                     :dayTextColor "#f8f8f2"
-                     :textDisabledColor "#6272a4"
-                     :todayTextColor "#f1fa8c"
-                     :monthTextColor "#ff79c6"
-                     :textSectionTitleColor "#ff79c6"
-                     :arrowColor "#8be9fd"
-                     :stylesheet.calendar.main
-                     {:dayContainer
-                      {:flex 1
-                       :margin 0
-                       :alignItems "center"
-                       :borderColor "#44475a"
-                       :borderWidth 1
-                       :borderStyle "solid"}
-                      :container
-                      {:justifyContent "space-evenly"
-                       :backgroundColor "#282a36"
-                       :paddingLeft 5
-                       :paddingBottom 5
-                       :paddingRight 5}
-                      :week
-                      {
-                       :flex 1
-                       :flexDirection "row"}
-                      :monthView
-                      {:marginTop 0
-                       :flex 1
-                       :backgroundColor "#282a36"
-                       :justifyContent "space-evenly"}}
-                     :stylesheet.day.basic
-                     {:container
-                      {:margin 0
-                       :flex 1
-                       :alignSelf "stretch"
-                       :alignItems "center"}}})
+(defn pick-date []
+  [:> rn/Button {:title "Print date" :on-press #(rf/dispatch [:pickdate "some date"])}])
+
+(rf/reg-event-fx :pickdate (fn [cofx event]
+                             (let [date (second event)]
+                               (println date))))
+(rf/reg-event-fx :day-press (fn [cofx event]
+                              (let [date (second event)]
+                                (println date))))
+(rf/reg-event-fx
+ :month-change
+ (fn [_ [_ value]]
+   (println value)))
+
+(rf/reg-event-db
+ :initialize
+ (fn [_ _]
+   {:event [interval interval2 interval3 interval4]}))
+
+;; (fn [date]
+;;                                         (do
+;;                                           (println @test)
+;;                                           (swap! decor-map #(e/update-decor % is))))
+
+(rf/reg-sub
+ :event
+ (fn [db _] (:event db)))
 
 (defn app []
   (let [is [interval interval2 interval3 interval4]
+        test (rf/subscribe [:event])
         cm (t/month)
         year (t/year)
         decor-map (r/atom (e/update-decor {} is))]
     (fn []
       [:> rn/View {:style (.-container styles)}
        [:> Calendar {:style (.-calendar styles)
-                     :theme calendar-theme
-                     :on-day-press (fn [day] (println day))
+                     :theme (merge theme/calendar-theme theme/calendar-main theme/marking theme/day-basic)
+                     :on-day-press #(rf/dispatch [:day-press %])
                      :first-day 1
                      :marking-type "multi-period"
-                     :on-month-change (fn [date]
-                                        (let [{:strs [month year]} (js->clj date)]
-                                          (swap! decor-map #(e/update-decor % is))))
-                     :marked-dates (clj->js @decor-map)}]])))
-       ;;[date-picker]
-       ;;[fab]])))
-       ;;[sub-list "List"]])))
-
-;;[:> rn/Text {:style (.-title styles)} "Hello!"]
-;;[:> rn/Image {:source splash-img :style {:width 200 :height 200}}]])
+                     :on-month-change #(rf/dispatch [:month-change %])
+                     :marked-dates (clj->js @decor-map)}]
+       [pick-date]
+       ])))
 
 (defn root []
   [:> Provider

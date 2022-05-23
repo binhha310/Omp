@@ -36,6 +36,17 @@
                 (t/date-time "2022-05-11T12:00")
                 (t/date-time "2022-05-19T12:00")))
 
+(def appointment {:name "some appointment"
+                  :datetime (t/date-time "2022-05-13T12:00")})
+
+(def event {:name "some event"
+            :interval i1})
+
+(def todo {:name "this todo"
+           :day (t/date "2022-05-19")
+           :priority 0
+           :repeat :day})
+
 (defn- decor-indexes [coll]
   (for [x (range (count coll))
     :let [val (nth coll x)
@@ -90,9 +101,9 @@
     (let [period (period-decorator interval date)
           trans (trans-decorator)]
       (-> decor-map
-        (update-in [(keyword date) :periods] #(conj-vector % pos period trans))
-        (assoc-in [(keyword date) :disableTouchEvent] false)))
-      decor-map))
+          (update-in [(keyword date) :periods] #(conj-vector % pos period trans))
+          (assoc-in [(keyword date) :accessibilityLabel] "test")))
+    decor-map))
 
 (defn- update-decor-date-coll [m coll indexes date]
   (let [coll (partition 2 (interleave indexes coll))
@@ -117,7 +128,5 @@
     (->> (map t/date dates)
          (map t/format)
          (reduce #(update-decor-date-coll % coll indexes %2) m))))
-
-;;(decor-indexes (sort-by-length [i1 i2 i3 i4]))
 
 (def update-decor (memoize update-decor-interval))
