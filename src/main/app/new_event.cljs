@@ -178,7 +178,7 @@
         space-coll? (complement #(some matter? %))
         contain-space? (fn [row]
                          (->> row
-                              (drop start)
+                              (drop (- start 1))
                               (take len)
                               space-coll?))]
     (->> matrix
@@ -191,7 +191,7 @@
         column (count (peek matrix))
         len (count sub)
         edit-num (first-space matrix start len (partial = space-val))
-        old-row (nth matrix edit-num (take column (repeat :space)))
+        old-row (nth matrix edit-num (take column (repeat space-val)))
         new-row (insert-vector old-row start sub)]
     (if (< edit-num (count matrix))
       (assoc matrix edit-num new-row)
@@ -203,66 +203,94 @@
         dates (iterate t/inc start)]
     (+ 1 (count (take-while (partial not= end) dates)))))
 
-(defn event-decor
-  ([interval] (event-decor interval (t/date (t/beginning interval))))
+(defn decor
+  ([] [:during])
+  ([interval] (decor interval (t/date (t/beginning interval))))
   ([interval date] (lazy-seq
-                    (cons (t.i/relation interval date) (event-decor interval (t/inc date))))))
+                    (take-while (partial not= :precedes)
+                    (cons (t.i/relation interval date)
+                          (decor interval (t/inc date)))))))
+
+(def periods
+  {:no [0 :days]
+   :day [1 :days]
+   :week [7 :days]
+   :month [1 :months]
+   :year [1 :years]})
 
 (defn same-month? [year month date]
   (and (= year (-> date t/year t/int))
        (= month (-> date t/month t/int))))
 
-(defn todo-decor-month [matrix year month coll]
-  (let [same-month? (partial same-month? year month)
-        decoration [:during]
-        repeat-todo (fn [matrix positions]
-                      (if (seq positions)
-                        (let [pos (first positions)]
-                          (recur
-                           (gravity matrix decoration pos :space)
-                           (rest positions)))
-                        matrix))
-        period {:no [0 :days]
-                :day [1 :days]
-                :week [7 :days]
-                :month [1 :months]
-                :year [1 :years]}]
+(defn- date->> [date period]
+  (t/>> date (apply t/new-period
+                    (period periods))))
+
+(defn- interval->> [interval period]
+  (t.i/new-interval
+   (date->> (t/beginning interval) period)
+   (date->> (t/end interval) period)))
+
+(defn repeat-handler [matrix decoration positions]
+  (loop [matrix matrix
+         positions positions]
+    (if (seq positions)
+      (let [pos (first positions)]
+        (recur
+         (gravity matrix decoration pos :space)
+         (rest positions)))
+      matrix)))
+
+(defn decor-month [decor-type relevant? timeshift position matrix year month coll]
+  (let [relevant? (partial relevant? year month)]
     (loop [matrix matrix
            coll coll]
       (if (seq coll)
-        (let [todo (first coll)
-              i (:time todo)
-              re (:repeat todo)
-              get-period #(t/>> % (apply t/new-period (re period)))
-              positions (if (= re :no)
-                          [(t/day-of-month i)]
-                          (map t/day-of-month
-                               (take-while same-month? (iterate get-period i))))
-              new-matrix (repeat-todo matrix positions)]
+        (let [item (first coll)
+              time (:time item)
+              decoration (if (= decor-type :todo) (decor) (decor time))
+              repeat (:repeat item)
+              next-time #(timeshift % repeat)
+              positions (if (= repeat :no)
+                          [(position time)]
+                          (->> time
+                               (iterate next-time)
+                               (take-while relevant?)
+                               (map position)))
+              new-matrix (repeat-handler matrix decoration positions)]
           (recur new-matrix (rest coll)))
         matrix))))
 
-(defn event-decor-month [matrix coll]
-  (if (seq coll)
-    (let [i (:time (first coll))
-          decoration (take-while (partial not= :precedes) (event-decor i))
-          position (-> i t/beginning t/day-of-month)
-          new-matrix (gravity matrix decoration position :space)]
-      (recur new-matrix (rest coll)))
-    matrix))
-
 (def data
   {:event
-   [{:time i1 :name "i1"}
-    {:time i2 :name "i2"}
-    {:time i3 :name "i3"}
-    {:time i4 :name "i4"}]
+   [{:time i1 :name "i1" :repeat :no}
+    {:time i2 :name "i2" :repeat :week}
+    {:time i3 :name "i3" :repeat :no}
+    {:time i4 :name "i4" :repeat :no}]
    :todo
    [{:time (t/date "2022-05-15") :name "t1" :repeat :no}
-    {:time (t/date "2022-05-24") :name "t2" :repeat :week}]})
+    {:time (t/date "2022-05-24") :name "t2" :repeat :day}]})
+
+(def todo-decor-month!
+  (let [relevant? (fn [year month time]
+                    (same-month? year month time))
+        position t/day-of-month
+        timeshift date->>
+        decor-type :todo]
+    (partial decor-month decor-type relevant? timeshift position)))
+
+(def event-decor-month!
+  (let [relevant? (fn [year month time]
+                    (or (same-month? year month (t/beginning time))
+                        (same-month? year month (t/end time))))
+        position #(-> % t/beginning t/day-of-month)
+        timeshift interval->>
+        decor-type :event]
+  (partial decor-month decor-type relevant? timeshift position)))
 
 (let [month (u/month-dates 2022 5)
       matrix (vector (take (count month) (repeat :space)))]
   (-> matrix
-      (event-decor-month (:event data))
-      (todo-decor-month 2022 5 (:todo data))))
+      (event-decor-month! 2022 5 (:event data))
+      (todo-decor-month! 2022 5 (:todo data))
+      ))
