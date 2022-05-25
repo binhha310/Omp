@@ -44,19 +44,6 @@
           (clj->js)
           (rn/StyleSheet.create)))
 
-;; (defn app-bar []
-;;   [:> Appbar {:style (.-appbar styles)}])
-
-;; (defn sub-list [title]
-;;   (fn []
-;;     [:> (.-Section List) {:style (.-list styles)}
-;;      [:> (.-Subheader List) title]
-;;      [:> (.-Item List) {:title "First item"}]
-;;      [:> (.-Item List) {:title "First item"}]
-;;      [:> (.-Item List) {:title "First item"}]
-;;      [:> (.-Item List) {:title "First item"}]
-;;      [:> (.-Item List) {:title "First item"}]]))
-
 (defn locale-format [date]
   (.toLocaleString date))
 
@@ -83,26 +70,37 @@
                        :mode "datetime"
                        :on-date-change #(reset! date %)}]])))
 
-(def interval (t.i/new-interval
+(def i1 (t.i/new-interval
                (t/date-time "2022-05-15T12:00")
                (t/date-time "2022-05-17T12:00")))
 
 
-(def interval2 (t.i/new-interval
+(def i2 (t.i/new-interval
                 (t/date-time "2022-05-13T12:00")
                 (t/date-time "2022-05-18T12:00")))
 
-(def interval3 (t.i/new-interval
+(def i3 (t.i/new-interval
                 (t/date-time "2022-05-12T12:00")
                 (t/date-time "2022-05-14T12:00")))
 
-(def interval4 (t.i/new-interval
+(def i4 (t.i/new-interval
                 (t/date-time "2022-05-11T12:00")
                 (t/date-time "2022-05-19T12:00")))
 
-(def interval5 (t.i/new-interval
+(def i5 (t.i/new-interval
                 (t/date-time "2022-05-25T12:00")
                 (t/date-time "2022-06-05T12:00")))
+
+(def data
+  {:event
+   [{:time i1 :name "i1" :repeat :no}
+    {:time i2 :name "i2" :repeat :week}
+    {:time i3 :name "i3" :repeat :no}
+    {:time i4 :name "i4" :repeat :no}]
+   :todo
+   [{:time (t/date "2022-05-15") :name "t1" :repeat :no}
+    {:time (t/date "2022-05-24") :name "t2" :repeat :day}]})
+
 
 (defn pick-date []
   [:> rn/Button {:title "Print date" :on-press #(rf/dispatch [:pickdate "some date"])}])
@@ -121,23 +119,17 @@
 (rf/reg-event-db
  :initialize
  (fn [_ _]
-   {:event [interval interval2 interval3 interval4]}))
-
-;; (fn [date]
-;;                                         (do
-;;                                           (println @test)
-;;                                           (swap! decor-map #(e/update-decor % is))))
+   {:event [i1 i2 i3 i4]}))
 
 (rf/reg-sub
  :event
  (fn [db _] (:event db)))
 
 (defn app []
-  (let [is [interval interval2 interval3 interval4]
-        test (rf/subscribe [:event])
-        cm (t/month)
-        year (t/year)
-        decor-map (r/atom (e/update-decor {} is))]
+  (let [test (rf/subscribe [:event])
+        month (t/int (t/month))
+        year (t/int (t/year))
+        decor-map (r/atom (e/vendor-format year month data))]
     (fn []
       [:> rn/View {:style (.-container styles)}
        [:> Calendar {:style (.-calendar styles)
