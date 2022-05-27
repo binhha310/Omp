@@ -27,6 +27,28 @@
                    (date-compare < next-month date))))]
     (filter (partial month? month) (year-dates year))))
 
+(defn first-calview-monday [year month]
+  (let [fst (t/new-date year month 1)
+        weekday (->> fst
+                     t/day-of-week
+                     t/int)
+        fst-monday (last (take weekday (iterate t/dec fst)))]
+    fst-monday))
+
+(defn last-calview-sunday [year month]
+  (let [fst-next (t/dec (t/new-date year (inc month) 1))
+        weekday (->> fst-next
+                     t/day-of-week
+                     t/int)
+        lst-sunday (last (take (- 8 weekday) (iterate t/inc fst-next)))]
+    lst-sunday))
+
+(defn calendar-dates [year month]
+  (let [first (first-calview-monday year month)
+        last (last-calview-sunday year month)
+        f (fn [date] (and (t/<= first date) (t/>= last date)))]
+    (filter f (year-dates year))))
+
 (defn include? [interval date]
   (case (t.i/relation interval date)
     :preceded-by false
@@ -67,3 +89,8 @@
         end (t/date (t/end i))
         dates (iterate t/inc start)]
     (+ 1 (count (take-while (partial not= end) dates)))))
+
+(defn between [beginning end]
+  (let [from-beginning (iterate t/inc beginning)
+        different (count (take-while (partial > end) from-beginning))]
+    different))

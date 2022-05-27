@@ -1,4 +1,11 @@
-(ns app.calendar-theme)
+(ns app.calendar
+  (:require
+   ["react-native-calendars" :refer (Calendar)]
+   [tick.core :as t]
+   [app.event :refer (month-decoration)]
+   [reagent.core :as r]
+   [app.utils :refer (calendar-dates)]
+   [re-frame.core :as rf]))
 
 (def calendar-theme {:backgroundColor "#282a36"
                      :calendarBackground "#282a36"
@@ -52,3 +59,27 @@
      :flex 1
      :alignSelf "stretch"
      :alignItems "center"}}})
+
+(defn- format [year month data]
+  (let [transpose (fn [matrix] (apply map vector matrix))
+        calendar-dates (map #(-> % t/format keyword)
+                            (calendar-dates year month))
+        data (map
+              (partial assoc {} :periods)
+              (transpose data))]
+    (apply assoc {} (interleave calendar-dates data))))
+
+(defn calendar [year month data]
+  (let [month (if (number? month) month (t/int month))
+        year (if (number? year) year (t/int year))
+        decor-map (r/atom
+                   (->> data
+                        (month-decoration year month)
+                        (format year month)))]
+    (fn []
+      [:> Calendar {:theme (merge calendar-theme calendar-main marking day-basic)
+                    :on-day-press #(rf/dispatch [:day-press %])
+                    :first-day 1
+                    :marking-type "multi-period"
+                    :on-month-change #(rf/dispatch [:month-change %])
+                    :marked-dates (clj->js @decor-map)}])))

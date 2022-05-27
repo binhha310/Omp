@@ -10,7 +10,7 @@
    [tick.core :as t]
    [tick.alpha.interval :as t.i]
    [app.event :as e]
-   [app.calendar-theme :as theme]))
+   [app.calendar :refer (calendar)]))
 
 ;; must use defonce and must refresh full app so metro can fill these in
 ;; at live-reload time `require` does not exist and will cause errors
@@ -88,15 +88,16 @@
                 (t/date-time "2022-05-19T12:00")))
 
 (def i5 (t.i/new-interval
-                (t/date-time "2022-05-25T12:00")
-                (t/date-time "2022-06-05T12:00")))
+                (t/date-time "2022-05-01T12:00")
+                (t/date-time "2022-05-02T12:00")))
 
 (def data
   {:event
    [{:time i1 :name "i1" :repeat :no}
-    {:time i2 :name "i2" :repeat :week}
+    {:time i2 :name "i2" :repeat :no}
     {:time i3 :name "i3" :repeat :no}
-    {:time i4 :name "i4" :repeat :no}]
+    {:time i4 :name "i4" :repeat :no}
+    {:time i5 :name "i5" :repeat :week}]
    :todo
    [{:time (t/date "2022-05-15") :name "t1" :repeat :no}
     {:time (t/date "2022-05-24") :name "t2" :repeat :day}]})
@@ -126,21 +127,11 @@
  (fn [db _] (:event db)))
 
 (defn app []
-  (let [test (rf/subscribe [:event])
-        month (t/int (t/month))
-        year (t/int (t/year))
-        decor-map (r/atom (e/vendor-format year month data))]
+  (let []
     (fn []
       [:> rn/View {:style (.-container styles)}
-       [:> Calendar {:style (.-calendar styles)
-                     :theme (merge theme/calendar-theme theme/calendar-main theme/marking theme/day-basic)
-                     :on-day-press #(rf/dispatch [:day-press %])
-                     :first-day 1
-                     :marking-type "multi-period"
-                     :on-month-change #(rf/dispatch [:month-change %])
-                     :marked-dates (clj->js @decor-map)}]
-       [pick-date]
-       ])))
+       [calendar (t/year) (t/month) data]
+       [pick-date]])))
 
 (defn root []
   [:> Provider
