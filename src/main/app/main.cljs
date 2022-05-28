@@ -92,39 +92,19 @@
                 (t/date-time "2022-05-02T12:00")))
 
 (def data
-  {:event
-   [{:time i1 :name "i1" :repeat :no}
-    {:time i2 :name "i2" :repeat :no}
-    {:time i3 :name "i3" :repeat :no}
-    {:time i4 :name "i4" :repeat :no}
-    {:time i5 :name "i5" :repeat :week}]
-   :todo
-   [{:time (t/date "2022-05-15") :name "t1" :repeat :no}
-    {:time (t/date "2022-05-24") :name "t2" :repeat :day}]})
+  {:events
+   [{:id 0 :time i1 :name "i1" :repeat :no}
+    {:id 1 :time i2 :name "i2" :repeat :no}
+    {:id 2 :time i3 :name "i3" :repeat :no}
+    {:id 3 :time i4 :name "i4" :repeat :no}
+    {:id 4 :time i5 :name "i5" :repeat :week}]
+   :todos
+   [{:id 5 :time (t/date "2022-05-15") :name "t1" :repeat :no}
+    {:id 6 :time (t/date "2022-05-24") :name "t2" :repeat :day}]})
 
 
 (defn pick-date []
   [:> rn/Button {:title "Print date" :on-press #(rf/dispatch [:pickdate "some date"])}])
-
-(rf/reg-event-fx :pickdate (fn [cofx event]
-                             (let [date (second event)]
-                               (println date))))
-(rf/reg-event-fx :day-press (fn [cofx event]
-                              (let [date (second event)]
-                                (println date))))
-(rf/reg-event-fx
- :month-change
- (fn [_ [_ value]]
-   (println value)))
-
-(rf/reg-event-db
- :initialize
- (fn [_ _]
-   {:event [i1 i2 i3 i4]}))
-
-(rf/reg-sub
- :event
- (fn [db _] (:event db)))
 
 (defn app []
   (let []
@@ -140,7 +120,9 @@
 (defn start
   {:dev/after-load true}
   []
-  (render-root "Omp" (r/as-element [root])))
+  (do
+    (rf/clear-subscription-cache!)
+    (render-root "Omp" (r/as-element [root]))))
 
 (defn init []
   (start))

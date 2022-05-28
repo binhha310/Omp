@@ -4,26 +4,10 @@
    [tick.core :as t]
    [tick.alpha.interval :as t.i]))
 
-(def i1 (t.i/new-interval
-         (t/date-time "2022-05-15T12:00")
-         (t/date-time "2022-05-17T12:00")))
-
-(def i2 (t.i/new-interval
-         (t/date-time "2022-05-13T12:00")
-         (t/date-time "2022-05-18T12:00")))
-
-(def i3 (t.i/new-interval
-         (t/date-time "2022-05-12T12:00")
-         (t/date-time "2022-05-14T12:00")))
-
-(def i4 (t.i/new-interval
-         (t/date-time "2022-05-11T12:00")
-         (t/date-time "2022-05-19T12:00")))
-
 (def decoration-color
   {:space "transparent"
-   :event "#50fa7b"
-   :todo "#ffb86c"})
+   :events "#50fa7b"
+   :todos "#ffb86c"})
 
 (def periods
   {:no [0 :days]
@@ -113,11 +97,10 @@
             coll coll]
        (if (seq coll)
          (let [item (first coll)
-               time (:time item)
-               decoration (if (= decor-type :todo)
+               {:keys [time repeat]} item
+               decoration (if (= decor-type :todos)
                             (decor decor-type)
                             (decor decor-type time))
-               repeat (:repeat item)
                next-time #(timeshift % repeat)
                position (partial position first-day)
                positions (if (= repeat :no)
@@ -130,21 +113,11 @@
            (recur new-matrix (rest coll)))
          matrix)))))
 
-(def data
-  {:event
-   [{:time i1 :name "i1" :repeat :no}
-    {:time i2 :name "i2" :repeat :week}
-    {:time i3 :name "i3" :repeat :no}
-    {:time i4 :name "i4" :repeat :no}]
-   :todo
-   [{:time (t/date "2022-05-15") :name "t1" :repeat :no}
-    {:time (t/date "2022-05-24") :name "t2" :repeat :day}]})
-
 (def todo-decor-month
   (let [relevant? (fn [dates date] (some #{date} dates))
         position (fn [start date] (+ 1 (u/between start date)))
         timeshift date->>
-        decor-type :todo]
+        decor-type :todos]
     (partial decor-month-factory decor-type relevant? timeshift position)))
 
 (def event-decor-month
@@ -155,12 +128,12 @@
                           (some #{end} dates))))
         position (fn [start interval] (u/between start (t/beginning interval)))
         timeshift interval->>
-        decor-type :event]
+        decor-type :events]
     (partial decor-month-factory decor-type relevant? timeshift position)))
 
 (defn decor-month [year month data]
-  (->> (event-decor-month year month (:event data))
-       (todo-decor-month year month (:todo data))))
+  (->> (event-decor-month year month (:events data))
+       (todo-decor-month year month (:todos data))))
 
 ;;(decor-month 2022 5 data)
 (defn decorator [type]
