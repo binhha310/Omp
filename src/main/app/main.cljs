@@ -3,11 +3,12 @@
    [shadow.react-native :refer (render-root)]
    ["react-native" :as rn]
    [reagent.core :as r]
-   [re-frame.core :as rf]
+   [re-frame.core :refer (dispatch-sync clear-subscription-cache!)]
    ["react-native-calendars" :refer (Calendar)]
    ["react-native-paper" :refer (DarkTheme Appbar Provider List FAB)]
    ["react-native-date-picker" :default DatePicker]
    [tick.core :as t]
+   [app.events]
    [tick.alpha.interval :as t.i]
    [app.event :as e]
    [app.calendar :refer (calendar)]))
@@ -102,27 +103,23 @@
    [{:id 5 :time (t/date "2022-05-15") :name "t1" :repeat :no}
     {:id 6 :time (t/date "2022-05-24") :name "t2" :repeat :day}]})
 
-
-(defn pick-date []
-  [:> rn/Button {:title "Print date" :on-press #(rf/dispatch [:pickdate "some date"])}])
-
 (defn app []
   (let []
     (fn []
       [:> rn/View {:style (.-container styles)}
-       [calendar (t/year) (t/month) data]
-       [pick-date]])))
+       [calendar (t/year) (t/month) data]])))
 
 (defn root []
   [:> Provider
    [app]])
 
+(dispatch-sync [:initialise-db])
+
 (defn start
   {:dev/after-load true}
   []
-  (do
-    (rf/clear-subscription-cache!)
-    (render-root "Omp" (r/as-element [root]))))
+  (clear-subscription-cache!)
+  (render-root "Omp" (r/as-element [root])))
 
 (defn init []
   (start))
