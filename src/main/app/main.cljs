@@ -11,7 +11,6 @@
    [app.events]
    [app.subs]
    [tick.alpha.interval :as t.i]
-   [app.event :as e]
    [app.calendar :refer (calendar)]))
 
 ;; must use defonce and must refresh full app so metro can fill these in

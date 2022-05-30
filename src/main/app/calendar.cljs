@@ -2,7 +2,7 @@
   (:require
    ["react-native-calendars" :refer (Calendar)]
    [tick.core :as t]
-   [app.event :refer (month-decoration)]
+   [app.marking :refer (month-decoration)]
    [reagent.core :as r]
    [app.utils :refer (calendar-dates)]
    [re-frame.core :as rf]))
