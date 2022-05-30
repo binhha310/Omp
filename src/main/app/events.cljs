@@ -15,21 +15,17 @@
 (def data-interceptors [check-spec-interceptor
                         (path :data)
                         ->local-store])
-
-;; (defn print-and-return [data]
-;;   (do
-;;     (println data)
-;;     data))
-
-(defn initialise-db [{:keys [db local-storage-data]}]
-  {:db (assoc default-db :data local-storage-data)})
+(defn allocate-next-id
+  []
+  (str (random-uuid)))
 
 (reg-fx
  :async-db
- (fn [promise]
-   (-> promise
+ (fn [p]
+   (-> (s/conform :app.db/promise p)
        (.then (fn [value]
-                (reset! re-frame.db/app-db value))))))
+                (check-and-throw :app.db/data value)
+                (swap! re-frame.db/app-db #(assoc % :data value)))))))
 
 (reg-event-fx
  :initialise-db
@@ -38,3 +34,22 @@
  (fn [{:keys [db local-store-data]} _]
    {:db default-db
     :async-db local-store-data}))
+
+(reg-event-db
+ :add-data
+ data-interceptors
+ (fn [data [_ {:keys [type time name repeat]}]]
+   (let [id (allocate-next-id)
+         new {:id id
+              :time time
+              :name name
+              :repeat repeat}]
+     (update-in data [type] #(conj % new)))))
+
+(reg-event-db
+ :delete-data
+ data-interceptors
+ (fn [data [_ id]]
+   (let [has-id (fn [map id] (some #{[:id id]} (seq map)))
+         drop (fn [vector id] (filter #(has-id % id) vector))]
+     (map #(drop % id) data))))

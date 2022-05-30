@@ -3,12 +3,13 @@
    [shadow.react-native :refer (render-root)]
    ["react-native" :as rn]
    [reagent.core :as r]
-   [re-frame.core :refer (dispatch-sync clear-subscription-cache!)]
+   [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    ["react-native-calendars" :refer (Calendar)]
    ["react-native-paper" :refer (DarkTheme Appbar Provider List FAB)]
    ["react-native-date-picker" :default DatePicker]
    [tick.core :as t]
    [app.events]
+   [app.subs]
    [tick.alpha.interval :as t.i]
    [app.event :as e]
    [app.calendar :refer (calendar)]))
@@ -92,33 +93,21 @@
                 (t/date-time "2022-05-01T12:00")
                 (t/date-time "2022-05-02T12:00")))
 
-(def data
-  {:events
-   [{:id 0 :time i1 :name "i1" :repeat :no}
-    {:id 1 :time i2 :name "i2" :repeat :no}
-    {:id 2 :time i3 :name "i3" :repeat :no}
-    {:id 3 :time i4 :name "i4" :repeat :no}
-    {:id 4 :time i5 :name "i5" :repeat :week}]
-   :todos
-   [{:id 5 :time (t/date "2022-05-15") :name "t1" :repeat :no}
-    {:id 6 :time (t/date "2022-05-24") :name "t2" :repeat :day}]})
-
 (defn app []
-  (let []
     (fn []
       [:> rn/View {:style (.-container styles)}
-       [calendar (t/year) (t/month) data]])))
+       [calendar (t/year) (t/month)]]))
 
 (defn root []
   [:> Provider
    [app]])
 
-(dispatch-sync [:initialise-db])
 
 (defn start
   {:dev/after-load true}
   []
   (clear-subscription-cache!)
+  (dispatch-sync [:initialise-db])
   (render-root "Omp" (r/as-element [root])))
 
 (defn init []

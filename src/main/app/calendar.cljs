@@ -69,17 +69,16 @@
               (transpose data))]
     (apply assoc {} (interleave calendar-dates data))))
 
-(defn calendar [year month data]
+(defn calendar [year month]
   (let [month (if (number? month) month (t/int month))
         year (if (number? year) year (t/int year))
-        decor-map (r/atom
-                   (->> data
-                        (month-decoration year month)
-                        (format year month)))]
+        data (rf/subscribe [:data])]
     (fn []
       [:> Calendar {:theme (merge calendar-theme calendar-main marking day-basic)
-                    :on-day-press #(rf/dispatch [:day-press %])
+                    :on-day-press #(println data)
                     :first-day 1
                     :marking-type "multi-period"
                     :on-month-change #(rf/dispatch [:month-change %])
-                    :marked-dates (clj->js @decor-map)}])))
+                    :marked-dates (clj->js (->> @data
+                                                (month-decoration year month)
+                                                (format year month)))}])))

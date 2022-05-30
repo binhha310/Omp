@@ -8,7 +8,10 @@
 (defn valid-date? [date]
   (every? #{"_year" "_month" "_day"} (.keys js/Object date)))
 
-(s/def ::id number?)
+(defn promise? [p]
+  (every? #{"_U" "_V" "_W" "_X"} (.keys js/Object p)))
+
+(s/def ::id string?)
 (s/def ::name string?)
 (s/def ::repeat keyword?)
 (s/def ::common (s/keys :req-un [::id ::name ::repeat]))
@@ -30,6 +33,7 @@
 
 (s/def ::db (s/keys :req-un [::data ::showing]))
 
+(s/def ::promise promise?)
 (def default-db {:data
                  {:events []
                   :todos []}
