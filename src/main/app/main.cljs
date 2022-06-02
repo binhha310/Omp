@@ -6,8 +6,8 @@
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    ["react-native-calendars" :refer (Calendar)]
    ["react-native-paper" :refer (DarkTheme Appbar Provider List FAB)]
-   ["react-native-date-picker" :default DatePicker]
    [tick.core :as t]
+   [app.views :refer (event-add-view)]
    [app.events]
    [app.subs]
    [tick.alpha.interval :as t.i]
@@ -39,37 +39,20 @@
             :left 0
             :right 0
             :top 0}
+           :marking
+           {:flexDirection "column"}
+           :marking-name
+           {:borderWidth 0}
            :list
            {:flex 1
             :marginTop 50}}
           (clj->js)
           (rn/StyleSheet.create)))
 
-(defn locale-format [date]
-  (.toLocaleString date))
-
 (defn fab []
   [:> FAB {:style (.-fab styles)
            :icon "plus"
            :on-press (fn [] (println "pressed"))}])
-
-(defn date-picker []
-  (let [open (r/atom false)
-        date (r/atom (js/Date.))]
-    (fn []
-      [:> rn/View {:style (.-container styles)}
-       [:> rn/Button {:title (locale-format @date) :on-press #(reset! open true)}]
-       [:> DatePicker {:modal true
-                       :date @date
-                       :open @open
-                       :on-confirm (fn [d] (do
-                                             (reset! open false)
-                                             (reset! date d)))
-                       :on-cancel #(reset! open false)
-                       :locale "vi"
-                       :is24hour-source "locale"
-                       :mode "datetime"
-                       :on-date-change #(reset! date %)}]])))
 
 (def i1 (t.i/new-interval
                (t/date-time "2022-05-15T12:00")
@@ -101,6 +84,10 @@
   [:> Provider
    [app]])
 
+(defn start!
+  {:dev/after-load true}
+  []
+  (render-root "Omp" (r/as-element [:> Provider [event-add-view]])))
 
 (defn start
   {:dev/after-load true}

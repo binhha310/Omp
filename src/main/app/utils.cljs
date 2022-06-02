@@ -1,7 +1,8 @@
 (ns app.utils
   (:require
    [tick.core :as t]
-   [tick.alpha.interval :as t.i]))
+   [tick.alpha.interval :as t.i]
+   [clojure.spec.alpha :as s]))
 
 (defn year-dates [year]
   (let [year (if (number? year) (t/year year) year)
@@ -94,3 +95,22 @@
   (let [from-beginning (iterate t/inc beginning)
         different (count (take-while (partial > end) from-beginning))]
     different))
+
+(defn today []
+  (t/today))
+
+
+(defn tomorrow []
+  (-> (t/now)
+      (t/>> (t/new-duration 1 :days))))
+
+(defn ->js-dt [date-time]
+  (-> date-time
+      t/inst))
+
+(def now t/now)
+(def get-time t/time)
+
+(defn set-time [datetime time]
+  (-> (t/date datetime)
+      (t/at time)))
