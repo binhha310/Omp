@@ -1,6 +1,7 @@
 (ns app.events
   (:require
    [app.db :refer [default-db save-local-database]]
+   [app.utils :refer (year-month)]
    [re-frame.core :refer [reg-event-db reg-event-fx reg-fx inject-cofx path after]]
    [cljs.spec.alpha :as s]))
 
@@ -15,6 +16,7 @@
 (def data-interceptors [check-spec-interceptor
                         (path :data)
                         ->local-store])
+
 (defn allocate-next-id
   []
   (str (random-uuid)))
@@ -34,6 +36,12 @@
  (fn [{:keys [db local-store-data]} _]
    {:db default-db
     :async-db local-store-data}))
+
+(reg-event-db
+ :change-month
+ [check-spec-interceptor]
+ (fn [db [_ {:keys [year month]}]]
+   (assoc db :month (year-month year month))))
 
 (reg-event-db
  :add-data

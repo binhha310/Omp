@@ -91,10 +91,17 @@
         dates (iterate t/inc start)]
     (+ 1 (count (take-while (partial not= end) dates)))))
 
-(defn between [beginning end]
+(defn- intermediate [beginning end]
   (let [from-beginning (iterate t/inc beginning)
         different (count (take-while (partial > end) from-beginning))]
     different))
+
+(defn between [beginning end]
+  (let [beginning (t/date beginning)
+        end (t/date end)]
+    (if (t/> beginning end)
+      (- (intermediate end beginning))
+      (intermediate beginning end))))
 
 (defn today []
   (t/today))
@@ -114,3 +121,19 @@
 (defn set-time [datetime time]
   (-> (t/date datetime)
       (t/at time)))
+
+(defn year-month
+  ([] (t/new-year-month))
+  ([year month] (t/new-year-month year month)))
+
+(defn month
+  ([] (t/int (t/month)))
+  ([year-month] (-> year-month
+                    t/month
+                    t/int)))
+
+(defn year
+  ([] (t/int (t/year)))
+  ([year-month] (-> year-month
+                    t/year
+                    t/int)))

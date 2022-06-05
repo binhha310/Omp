@@ -36,11 +36,13 @@
          (take-while false?)
          count)))
 
-(defn gravity [matrix sub start space-val]
+(defn gravity [matrix subvec start space-val]
   (let [matrix (if (vector? matrix) matrix (vec matrix))
         column (count (peek matrix))
-        len (count sub)
-        edit-num (first-space matrix start len (partial = space-val))
+        sub (if (> 0 start)
+              (drop (- 1 start) subvec)
+              subvec)
+        edit-num (first-space matrix start (count sub) (partial = space-val))
         old-row (nth matrix edit-num (take column (repeat space-val)))
         new-row (insert-vector old-row start sub)]
     (if (< edit-num (count matrix))
@@ -79,11 +81,6 @@
          (rest positions)))
       matrix)))
 
-(defn print-and-return [data]
-  (do
-    (println data)
-    data))
-
 (defn- decor-month-factory
   ([decor-type relevant? timeshift position year month coll]
    (let [month-seq (u/calendar-dates year month)
@@ -104,9 +101,10 @@
                next-time #(timeshift % repeat)
                position (partial position first-day)
                positions (if (= repeat :no)
-                           [(position time)]
+                           (when (relevant? time) [(position time)])
                            (->> time
                                 (iterate next-time)
+                                (drop-while (complement relevant?))
                                 (take-while relevant?)
                                 (map position)))
                new-matrix (repeat-handler matrix decoration positions)]

@@ -4,7 +4,7 @@
    [tick.core :as t]
    [app.marking :refer (month-decoration)]
    [reagent.core :as r]
-   [app.utils :refer (calendar-dates)]
+   [app.utils :refer (calendar-dates year month)]
    [re-frame.core :as rf]))
 
 (def calendar-theme {:backgroundColor "#282a36"
@@ -61,24 +61,27 @@
      :alignItems "center"}}})
 
 (defn- format [year month data]
-  (let [transpose (fn [matrix] (apply map vector matrix))
-        calendar-dates (map #(-> % t/format keyword)
-                            (calendar-dates year month))
-        data (map
-              (partial assoc {} :periods)
-              (transpose data))]
-    (apply assoc {} (interleave calendar-dates data))))
+  (if (seq data)
+    (let [transpose (fn [matrix] (apply map vector matrix))
+          calendar-dates (map #(-> % t/format keyword)
+                              (calendar-dates year month))
+          data (map
+                (partial assoc {} :periods)
+                (transpose data))]
+      (apply assoc {} (interleave calendar-dates data)))))
 
-(defn calendar [year month]
-  (let [month (if (number? month) month (t/int month))
-        year (if (number? year) year (t/int year))
-        data (rf/subscribe [:data])]
+(defn calendar []
+  (let [theme (merge calendar-theme calendar-main marking day-basic)
+        m (rf/subscribe [:month])
+        change-month (fn [date] (rf/dispatch [:change-month
+                                              {:year (.-year date)
+                                               :month (.-month date)}]))
+        decor (rf/subscribe [:marking])]
     (fn []
-      [:> Calendar {:theme (merge calendar-theme calendar-main marking day-basic)
-                    :on-day-press #(println data)
-                    :first-day 1
-                    :marking-type "multi-period"
-                    :on-month-change #(rf/dispatch [:month-change %])
-                    :marked-dates (clj->js (->> @data
-                                                (month-decoration year month)
-                                                (format year month)))}])))
+      (let [marked-date (clj->js (format (year @m) (month @m) @decor))]
+        [:> Calendar {:theme theme
+                      :on-day-press #(println @m)
+                      :first-day 1
+                      :marking-type "multi-period"
+                      :on-month-change change-month
+                      :marked-dates marked-date}]))))
