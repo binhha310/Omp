@@ -137,3 +137,11 @@
   ([year-month] (-> year-month
                     t/year
                     t/int)))
+
+(def get-date t/date)
+
+(defn interval
+  [starting ending]
+  (t.i/new-interval
+   (t/date-time starting)
+   (t/date-time ending)))

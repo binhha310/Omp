@@ -5,8 +5,10 @@
    [reagent.core :as r]
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    ["react-native-calendars" :refer (Calendar)]
-   ["react-native-paper" :refer (DarkTheme Appbar Provider List FAB)]
-   [app.views :refer (event-add-view)]
+   ["react-native-paper" :refer (DarkTheme Provider FAB)]
+   ["@react-navigation/native" :refer (NavigationContainer)]
+   ["@react-navigation/native-stack" :refer (createNativeStackNavigator)]
+   [app.views :refer (event-add-view todo-add-view)]
    [app.events]
    [app.subs]
    [tick.alpha.interval :as t.i]
@@ -28,11 +30,23 @@
            {:fontWeight "bold"
             :fontSize 24
             :color "blue"}
-           :fab
+           :addFab
            {:position "absolute"
             :margin 16
             :right 0
             :bottom 0}
+           :activityFab
+           {:position "relative"
+            :marginBottom 16
+            :marginRight 16
+            :right 0
+            :bottom 0}
+           :activity
+           {:flex 1
+            :height "100%"
+            :flexDirection "column"
+            :justifyContent "flex-end"
+            :alignItems "flex-end"}
            :appbar
            {:position "absolute"
             :left 0
@@ -48,18 +62,57 @@
           (clj->js)
           (rn/StyleSheet.create)))
 
-(defn fab []
-  [:> FAB {:style (.-fab styles)
-           :icon "plus"
-           :on-press (fn [] (println "pressed"))}])
+(defn fab [{:keys [style icon callback]}]
+  [:> FAB {:icon icon
+           :style style
+           :on-press (fn [] (callback))}])
 
-(dispatch-sync [:initialise-db])
-
-(defn app []
+(defn main-view [{:keys [navigation]}]
+  (let [to-activity #(.navigate navigation "Activity")]
     (fn []
       [:> rn/View {:style (.-container styles)}
        [calendar]
-       [fab]]))
+       [fab {:style (.-addFab styles) :icon "plus" :callback to-activity}]])))
+
+(defn activity-view [{:keys [navigation]}]
+  (let [new-event #(.navigate navigation "NewEvent")
+        new-todo #(.navigate navigation "NewTodo")]
+    (fn []
+      [:> rn/View {:style (.-activity styles)}
+       [fab {:style (.-activityFab styles) :icon "format-list-checks" :callback new-todo}]
+       [fab {:style (.-activityFab styles) :icon "calendar" :callback new-event}]])))
+
+(dispatch-sync [:initialise-db])
+
+(defn create-element
+  ([re]
+   (r/create-element (r/reactify-component re)))
+
+  ([re props]
+   (r/create-element
+    (r/reactify-component re) (clj->js props))))
+
+(defn app []
+  (let [Stack (createNativeStackNavigator)
+        Home (r/reactify-component main-view)
+        Activity (r/reactify-component activity-view)
+        NewEvent (r/reactify-component event-add-view)
+        NewTodo (r/reactify-component todo-add-view)]
+    (fn []
+      [:> NavigationContainer
+       [:> (.-Navigator Stack) {:screenOptions​ {:headerShown false}}
+        [:> (.-Screen Stack) {:name "Home"
+                              :component Home
+                              :options (clj->js {:headerShown false})}]
+        [:> (.-Screen Stack) {:name "Activity"
+                              :component Activity
+                              :options (clj->js {:headerShown false})}]
+        [:> (.-Screen Stack) {:name "NewEvent"
+                              :component NewEvent
+                              :options #js{}}]
+        [:> (.-Screen Stack) {:name "NewTodo"
+                              :component NewTodo
+                              :options #js{}}]]])))
 
 (defn root []
   [:> Provider

@@ -4,6 +4,7 @@
    [clojure.spec.alpha :as s]
    [re-frame.core :as rf]
    [app.utils :refer (year-month)]
+   [tick.core :as t]
    ["@react-native-async-storage/async-storage" :default AsyncStorage]))
 
 (defn valid-date? [date]
@@ -20,13 +21,16 @@
 (s/def ::repeat keyword?)
 (s/def ::common (s/keys :req-un [::id ::name ::repeat]))
 
+(s/def :tick/beginning t/date-time?)
+(s/def :tick/end t/date-time?)
+
 (s/def ::interval (s/keys :req [:tick/beginning :tick/end]))
 (s/def :event/time ::interval)
 (s/def ::event (s/merge ::common
                         (s/keys :req-un [:event/time])))
 (s/def ::events (s/coll-of ::event))
 
-(s/def ::date valid-date?)
+(s/def ::date t/date?)
 (s/def ::month month?)
 
 (s/def :todo/time ::date)

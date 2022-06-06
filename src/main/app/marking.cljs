@@ -18,9 +18,8 @@
 
 (defn- insert-vector [a start b]
   (let [length (count a)
-        pos (- start 1)
-        head (take pos a)
-        tail (take-last (- length (count b) pos) a)]
+        head (take start a)
+        tail (take-last (- length (count b) start) a)]
     (into [] (take length (concat head b tail)))))
 
 (defn- first-space [matrix start len space?]
@@ -28,7 +27,7 @@
         space-coll? (complement #(some matter? %))
         contain-space? (fn [row]
                          (->> row
-                              (drop (- start 1))
+                              (drop start)
                               (take len)
                               space-coll?))]
     (->> matrix
@@ -57,10 +56,6 @@
                           #(not= :precedes (:decor %))
                           (cons {:type type :decor (t.i/relation interval date)}
                                 (decor type interval (t/inc date)))))))
-
-(defn same-month? [year month date]
-  (and (= year (-> date t/year t/int))
-       (= month (-> date t/month t/int))))
 
 (defn- date->> [date period]
   (t/>> date (apply t/new-period
@@ -113,7 +108,7 @@
 
 (def todo-decor-month
   (let [relevant? (fn [dates date] (some #{date} dates))
-        position (fn [start date] (+ 1 (u/between start date)))
+        position (fn [start date] (u/between start date))
         timeshift date->>
         decor-type :todos]
     (partial decor-month-factory decor-type relevant? timeshift position)))
