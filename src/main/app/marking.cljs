@@ -77,35 +77,40 @@
       matrix)))
 
 (defn- decor-month-factory
-  ([decor-type relevant? timeshift position year month coll]
-   (let [month-seq (u/calendar-dates year month)
-         matrix (vector (take (count month-seq) (repeat :space)))]
-     (decor-month-factory decor-type relevant? timeshift position year month coll matrix)))
-  ([decor-type relevant? timeshift position year month coll matrix]
-   (let [dates (u/calendar-dates year month)
-         first-day (first dates)
-         last-day (last dates)
-         relevant? (partial relevant? first-day last-day)]
-     (loop [matrix matrix
-            coll coll]
-       (if (seq coll)
-         (let [item (first coll)
-               {:keys [time repeat]} item
-               decoration (if (= decor-type :todos)
-                            (decor decor-type)
-                            (decor decor-type time))
-               next-time #(timeshift % repeat)
-               position (partial position first-day)
-               positions (if (= repeat :no)
-                           (when (relevant? time) [(position time)])
-                           (->> time
-                                (iterate next-time)
-                                (drop-while (complement relevant?))
-                                (take-while relevant?)
-                                (map position)))
-               new-matrix (repeat-handler matrix decoration positions)]
-           (recur new-matrix (rest coll)))
-         matrix)))))
+  [decor-type relevant? timeshift position]
+  (fn decoration
+    ([year month coll]
+     (let [month-seq (u/calendar-dates year month)
+           matrix (-> month-seq
+                      count
+                      (take (repeat :space))
+                      vector)]
+       (decoration year month coll matrix)))
+    ([year month coll matrix]
+     (let [dates (u/calendar-dates year month)
+           first-day (first dates)
+           last-day (last dates)
+           relevant? (partial relevant? first-day last-day)]
+       (loop [matrix matrix
+              coll coll]
+         (if (seq coll)
+           (let [item (first coll)
+                 {:keys [time repeat]} item
+                 decoration (if (= decor-type :todos)
+                              (decor decor-type)
+                              (decor decor-type time))
+                 next-time #(timeshift % repeat)
+                 position (partial position first-day)
+                 positions (if (= repeat :no)
+                             (when (relevant? time) [(position time)])
+                             (->> time
+                                  (iterate next-time)
+                                  (drop-while (complement relevant?))
+                                  (take-while relevant?)
+                                  (map position)))
+                 new-matrix (repeat-handler matrix decoration positions)]
+             (recur new-matrix (rest coll)))
+           matrix))))))
 
 (defn- todo-relevant? [first last date]
   (and (t/<= date last)
