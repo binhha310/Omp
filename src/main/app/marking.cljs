@@ -132,7 +132,11 @@
 (defn decorator [type]
   (let [color (type decoration-color)]
     {:space {:color color}
+     :meets {:color "transparent"}
+     :met-by {:color "transparent"}
      :overlapped-by {:startingDay true :endingDay false :color color}
+     :started-by {:startingDay true :endingDay false :color color}
+     :finished-by {:startingDay false :endingDay true :color color}
      :contains {:startingDay false :endingDay false :color color}
      :overlaps {:startingDay false :endingDay true :color color}
      :during {:startingDay true :endingDay true :color color}}))

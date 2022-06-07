@@ -3,6 +3,6 @@
  */
 
 import './target/index.js';
-import { LogBox } from 'react-native';
+import { LogBox, YellowBox } from 'react-native';
 // Ignore log notification by message
-LogBox.ignoreLogs(['Warning: ...']);
+LogBox.ignoreLogs(['']);

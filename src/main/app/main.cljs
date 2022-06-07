@@ -5,12 +5,13 @@
    [reagent.core :as r]
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    ["react-native-calendars" :refer (Calendar)]
-   ["react-native-paper" :refer (DarkTheme Provider FAB)]
+   ["react-native-paper" :refer (DarkTheme Provider FAB Button)]
    ["@react-navigation/native" :refer (NavigationContainer)]
    ["@react-navigation/native-stack" :refer (createNativeStackNavigator)]
    [app.views :refer (event-add-view todo-add-view)]
    [app.events]
    [app.subs]
+   [tick.core :as t :refer (hour minute time)]
    [tick.alpha.interval :as t.i]
    [app.calendar :refer (calendar)]))
 
@@ -26,10 +27,6 @@
   ^js (-> {:container
            {:flex 1
             :backgroundColor "#fff"}
-           :title
-           {:fontWeight "bold"
-            :fontSize 24
-            :color "blue"}
            :addFab
            {:position "absolute"
             :margin 16
@@ -47,18 +44,23 @@
             :flexDirection "column"
             :justifyContent "flex-end"
             :alignItems "flex-end"}
-           :appbar
-           {:position "absolute"
-            :left 0
-            :right 0
-            :top 0}
            :marking
            {:flexDirection "column"}
            :marking-name
            {:borderWidth 0}
-           :list
-           {:flex 1
-            :marginTop 50}}
+           :hour
+           {:borderBottomStyle "solid"
+            :borderWidth 1
+            :borderColor "rgba(0, 0, 0, 0.1)"
+            :height 60
+            :margin 0}
+           :markingView
+           {:position "absolute"
+            :flexDirection "row"
+            :height "100%"
+            :width "85%"
+            :backgroundColor "rgba(0, 0, 20, 0.2)"
+            :marginLeft "15%"}}
           (clj->js)
           (rn/StyleSheet.create)))
 
@@ -71,7 +73,7 @@
   (let [to-activity #(.navigate navigation "Activity")]
     (fn []
       [:> rn/View {:style (.-container styles)}
-       [calendar]
+       [calendar {:navigation navigation}]
        [fab {:style (.-addFab styles) :icon "plus" :callback to-activity}]])))
 
 (defn activity-view [{:keys [navigation]}]
@@ -81,6 +83,41 @@
       [:> rn/View {:style (.-activity styles)}
        [fab {:style (.-activityFab styles) :icon "format-list-checks" :callback new-todo}]
        [fab {:style (.-activityFab styles) :icon "calendar" :callback new-event}]])))
+
+(defn hour-view [num]
+  (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
+    [:> rn/View {:style (.-hour styles)}
+     [:> rn/Text text]]))
+
+(defn button-view [beginning ending name]
+  (let [pos #(+ (* 60 (hour %)) (minute %))
+        top (pos beginning)
+        bottom (- 1440 (pos ending))
+        style (->
+               {:width "auto"
+                :justifyContent "center"
+                :flex 1
+                :textAlign "center"
+                :marginTop top
+                :alignItem "stre"
+                :marginBottom bottom}
+               (clj->js)
+               (rn/StyleSheet.create))]
+    [:> Button {:mode "contained" :style style}
+     name]))
+
+(def beginning (t/now))
+(def ending (t/>> (t/now) (t/new-duration 10 :hours)))
+(def ending2 (t/>> (t/now) (t/new-duration 5 :hours)))
+(defn details-view [{:keys [route]}]
+  (let [date (:date (.-params route))]
+  (fn []
+    [:> rn/ScrollView {:style (.-container styles)}
+     (for [i (range 24)]
+       [hour-view i])
+     [:> rn/View {:style (.-markingView styles)}
+      [button-view beginning ending "text"]
+      [button-view beginning ending2 "second"]]])))
 
 (dispatch-sync [:initialise-db])
 
@@ -97,7 +134,8 @@
         Home (r/reactify-component main-view)
         Activity (r/reactify-component activity-view)
         NewEvent (r/reactify-component event-add-view)
-        NewTodo (r/reactify-component todo-add-view)]
+        NewTodo (r/reactify-component todo-add-view)
+        Details (r/reactify-component details-view)]
     (fn []
       [:> NavigationContainer
        [:> (.-Navigator Stack) {:screenOptions​ {:headerShown false}}
@@ -112,6 +150,9 @@
                               :options #js{}}]
         [:> (.-Screen Stack) {:name "NewTodo"
                               :component NewTodo
+                              :options #js{}}]
+        [:> (.-Screen Stack) {:name "Details"
+                              :component Details
                               :options #js{}}]]])))
 
 (defn root []

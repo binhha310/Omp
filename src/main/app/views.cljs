@@ -78,7 +78,7 @@
          [datetime-picker datetime!])
        (do
          (swap! datetime! set-night)
-         [datetime-picker datetime!]))))
+         [date-picker datetime!]))))
   ([date!]
    (date-picker! "date" date!)))
 
@@ -175,6 +175,19 @@
                              (.popToTop navigation))}
      "Save"]))
 
+(defn adding-view [name description time repeat save]
+  (fn []
+    [:> rn/View {:style (.-marking styles)}
+     [:> rn/View {:style (.-markingProperties styles)}
+      [name]
+      [:> Divider]
+      [description]
+      [:> Divider]
+      [time]
+      [:> Divider]
+      [repeat]]
+     [save]]))
+
 (defn event-add-view [{:keys [navigation]}]
   (let [allDay (r/atom false)
         name (r/atom "")
@@ -182,37 +195,29 @@
         starting (r/atom (now))
         ending (r/atom (tomorrow))]
     (fn []
-      [:> rn/View {:style (.-marking styles)}
-       [:> rn/View {:style (.-markingProperties styles)}
-        [marking-name "event" name]
-        [:> Divider]
-        [marking-description "event"]
-        [:> Divider]
-        [event-time allDay starting ending]
-        [:> Divider]
-        [marking-repeat rep]]
-       [save {:navigation navigation
-              :type :events
-              :time {:beginning starting :ending ending}
-              :name name
-              :repeat rep}]])))
+      [adding-view
+       (fn [] [marking-name "event" name])
+       (fn [] [marking-description "event"])
+       (fn [] [event-time allDay starting ending])
+       (fn [] [marking-repeat rep])
+       (fn [] [save {:navigation navigation
+                     :type :events
+                     :time {:beginning starting :ending ending}
+                     :name name
+                     :repeat rep}])])))
 
 (defn todo-add-view [{:keys [navigation]}]
   (let [name (r/atom "")
         rep (r/atom :no)
         time (r/atom (today))]
     (fn []
-      [:> rn/View {:style (.-marking styles)}
-       [:> rn/View {:style (.-markingProperties styles)}
-        [marking-name "todo" name]
-        [:> Divider]
-        [marking-description "todo"]
-        [:> Divider]
-        [todo-time time]
-        [:> Divider]
-        [marking-repeat rep]]
-       [save {:navigation navigation
-              :type :todos
-              :time time
-              :name name
-              :repeat rep}]])))
+      [adding-view
+       (fn [] [marking-name "todo" name])
+       (fn [] [marking-description "todo"])
+       (fn [] [todo-time time])
+       (fn [] [marking-repeat rep])
+       (fn [] [save {:navigation navigation
+                     :type :todos
+                     :time time
+                     :name name
+                     :repeat rep}])])))

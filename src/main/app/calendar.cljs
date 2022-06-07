@@ -70,7 +70,7 @@
                 (transpose data))]
       (apply assoc {} (interleave calendar-dates data)))))
 
-(defn calendar []
+(defn calendar [{:keys [navigation]}]
   (let [theme (merge calendar-theme calendar-main marking day-basic)
         m (rf/subscribe [:month])
         change-month (fn [date] (rf/dispatch [:change-month
@@ -80,7 +80,7 @@
     (fn []
       (let [marked-date (clj->js (format (year @m) (month @m) @decor))]
         [:> Calendar {:theme theme
-                      :on-day-press #(println @m)
+                      :on-day-press #(.navigate navigation "Details", {:date %})
                       :first-day 1
                       :marking-type "multi-period"
                       :on-month-change change-month
