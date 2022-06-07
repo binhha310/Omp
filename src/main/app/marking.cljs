@@ -84,7 +84,8 @@
   ([decor-type relevant? timeshift position year month coll matrix]
    (let [dates (u/calendar-dates year month)
          first-day (first dates)
-         relevant? (partial relevant? dates)]
+         last-day (last dates)
+         relevant? (partial relevant? first-day last-day)]
      (loop [matrix matrix
             coll coll]
        (if (seq coll)
@@ -106,19 +107,27 @@
            (recur new-matrix (rest coll)))
          matrix)))))
 
+(defn- todo-relevant? [first last date]
+  (and (t/<= date last)
+       (t/>= date first)))
+
 (def todo-decor-month
-  (let [relevant? (fn [dates date] (some #{date} dates))
+  (let [relevant? todo-relevant?
         position (fn [start date] (u/between start date))
         timeshift date->>
         decor-type :todos]
     (partial decor-month-factory decor-type relevant? timeshift position)))
 
+(defn- event-relevant? [first last interval]
+  (let [beginning (-> interval t/beginning t/date)
+        end (-> interval t/end t/date)]
+    (or (and (t/<= beginning last)
+             (t/>= beginning first))
+        (and (t/<= end last)
+             (t/>= end first)))))
+
 (def event-decor-month
-  (let [relevant? (fn [dates interval]
-                    (let [beginning (-> interval t/beginning t/date)
-                          end (-> interval t/end t/date)]
-                      (or (some #{beginning} dates)
-                          (some #{end} dates))))
+  (let [relevant? event-relevant?
         position (fn [start interval] (u/between start (t/beginning interval)))
         timeshift interval->>
         decor-type :events]

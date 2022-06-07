@@ -13,6 +13,7 @@
    [app.subs]
    [tick.core :as t :refer (hour minute time)]
    [tick.alpha.interval :as t.i]
+   [clojure.spec.alpha :as s]
    [app.calendar :refer (calendar)]))
 
 ;; must use defonce and must refresh full app so metro can fill these in
@@ -91,33 +92,51 @@
 
 (defn button-view [beginning ending name]
   (let [pos #(+ (* 60 (hour %)) (minute %))
-        top (pos beginning)
-        bottom (- 1440 (pos ending))
+        top 0
+        bottom 0
         style (->
-               {:width "auto"
-                :justifyContent "center"
-                :flex 1
+               {:justifyContent "center"
                 :textAlign "center"
                 :marginTop top
-                :alignItem "stre"
+                :flex 1
                 :marginBottom bottom}
                (clj->js)
                (rn/StyleSheet.create))]
-    [:> Button {:mode "contained" :style style}
-     name]))
+    (fn []
+      [:> Button {:mode "contained" :style style}
+       name])))
 
 (def beginning (t/now))
 (def ending (t/>> (t/now) (t/new-duration 10 :hours)))
 (def ending2 (t/>> (t/now) (t/new-duration 5 :hours)))
+
+(def b (t/date-time))
+(def e (t/>> b (t/new-duration 5 :hours)))
+(def interval (t.i/new-interval b e))
+
+(s/def ::date t/date?)
+(s/def ::interval t/interval?)
+
+(defn relation [date interval]
+  (when (and (s/valid? ::date date) (s/valid? ::interval interval))
+    (t.i/relation (t/date date) interval)))
+
 (defn details-view [{:keys [route]}]
-  (let [date (:date (.-params route))]
-  (fn []
-    [:> rn/ScrollView {:style (.-container styles)}
-     (for [i (range 24)]
-       [hour-view i])
-     [:> rn/View {:style (.-markingView styles)}
-      [button-view beginning ending "text"]
-      [button-view beginning ending2 "second"]]])))
+  (let [date (:date (.-params route))
+        dateString (.-dateString ^js date)
+        data (subscribe [:data])]
+    (fn []
+      [:> rn/ScrollView {:style (.-container styles)}
+       (for [i (range 24)]
+         [hour-view i])
+       [:> rn/View {:style (.-markingView styles)}
+        (for [e (:events @data)
+              :let [{:keys [id name time]} e
+                    {:keys [tick/beginning tick/end]} time
+                    relation (relation (t/date dateString) time)]]
+          (do
+            (println relation)
+          [button-view beginning end name]))]])))
 
 (dispatch-sync [:initialise-db])
 
