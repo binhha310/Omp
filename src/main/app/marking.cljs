@@ -76,27 +76,32 @@
          (rest positions)))
       matrix)))
 
+(defn marking-loop [relevant? timeshift item]
+  (let [not-relevant? (complement relevant?)
+        {:keys [time repeat]} item
+        next-time #(timeshift % repeat)]
+    (if (= repeat :no)
+      (when (relevant? time) [time])
+      (->> time
+           (iterate next-time)
+           (drop-while not-relevant?)
+           (take-while relevant?)))))
+
 (defn- decor-month-factory
   [decor-type relevant? timeshift position]
   (fn [first-day last-day coll matrix]
-    (let [relevant? (partial relevant? first-day last-day)
-          position (partial position first-day)]
+    (let [this-month? (partial relevant? first-day last-day)
+          position (partial position first-day)
+          markings (partial marking-loop this-month? timeshift)]
       (loop [matrix matrix
              coll coll]
         (if (seq coll)
           (let [item (first coll)
-                {:keys [time repeat]} item
+                time (:time item)
                 decoration (if (= decor-type :todos)
                              (decor decor-type)
                              (decor decor-type time))
-                next-time #(timeshift % repeat)
-                positions (if (= repeat :no)
-                            (when (relevant? time) [(position time)])
-                            (->> time
-                                 (iterate next-time)
-                                 (drop-while (complement relevant?))
-                                 (take-while relevant?)
-                                 (map position)))
+                positions (map position (markings item))
                 new-matrix (repeat-handler matrix decoration positions)]
             (recur new-matrix (rest coll)))
           matrix)))))
