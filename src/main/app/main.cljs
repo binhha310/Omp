@@ -11,9 +11,7 @@
    [app.views :refer (event-add-view todo-add-view)]
    [app.events]
    [app.subs]
-   [tick.core :as t :refer (hour minute time)]
-   [tick.alpha.interval :as t.i]
-   [clojure.spec.alpha :as s]
+   [app.views.details :refer (details-view)]
    [app.calendar :refer (calendar)]))
 
 ;; must use defonce and must refresh full app so metro can fill these in
@@ -44,24 +42,7 @@
             :height "100%"
             :flexDirection "column"
             :justifyContent "flex-end"
-            :alignItems "flex-end"}
-           :marking
-           {:flexDirection "column"}
-           :marking-name
-           {:borderWidth 0}
-           :hour
-           {:borderBottomStyle "solid"
-            :borderWidth 1
-            :borderColor "rgba(0, 0, 0, 0.1)"
-            :height 60
-            :margin 0}
-           :markingView
-           {:position "absolute"
-            :flexDirection "row"
-            :height "100%"
-            :width "85%"
-            :backgroundColor "rgba(0, 0, 20, 0.2)"
-            :marginLeft "15%"}}
+            :alignItems "flex-end"}}
           (clj->js)
           (rn/StyleSheet.create)))
 
@@ -84,59 +65,6 @@
       [:> rn/View {:style (.-activity styles)}
        [fab {:style (.-activityFab styles) :icon "format-list-checks" :callback new-todo}]
        [fab {:style (.-activityFab styles) :icon "calendar" :callback new-event}]])))
-
-(defn hour-view [num]
-  (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
-    [:> rn/View {:style (.-hour styles)}
-     [:> rn/Text text]]))
-
-(defn button-view [beginning ending name]
-  (let [pos #(+ (* 60 (hour %)) (minute %))
-        top 0
-        bottom 0
-        style (->
-               {:justifyContent "center"
-                :textAlign "center"
-                :marginTop top
-                :flex 1
-                :marginBottom bottom}
-               (clj->js)
-               (rn/StyleSheet.create))]
-    (fn []
-      [:> Button {:mode "contained" :style style}
-       name])))
-
-(def beginning (t/now))
-(def ending (t/>> (t/now) (t/new-duration 10 :hours)))
-(def ending2 (t/>> (t/now) (t/new-duration 5 :hours)))
-
-(def b (t/date-time))
-(def e (t/>> b (t/new-duration 5 :hours)))
-(def interval (t.i/new-interval b e))
-
-(s/def ::date t/date?)
-(s/def ::interval t/interval?)
-
-(defn relation [date interval]
-  (when (and (s/valid? ::date date) (s/valid? ::interval interval))
-    (t.i/relation (t/date date) interval)))
-
-(defn details-view [{:keys [route]}]
-  (let [date (:date (.-params route))
-        dateString (.-dateString ^js date)
-        data (subscribe [:data])]
-    (fn []
-      [:> rn/ScrollView {:style (.-container styles)}
-       (for [i (range 24)]
-         [hour-view i])
-       [:> rn/View {:style (.-markingView styles)}
-        (for [e (:events @data)
-              :let [{:keys [id name time]} e
-                    {:keys [tick/beginning tick/end]} time
-                    relation (relation (t/date dateString) time)]]
-          (do
-            (println relation)
-          [button-view beginning end name]))]])))
 
 (dispatch-sync [:initialise-db])
 

@@ -18,6 +18,22 @@
         b (t/int (t/month date))]
     (if (f b a) true false)))
 
+(def periods
+  {:no [0 :days]
+   :day [1 :days]
+   :week [7 :days]
+   :month [1 :months]
+   :year [1 :years]})
+
+(defn date->> [date period]
+  (t/>> date (apply t/new-period
+                    (period periods))))
+
+(defn interval->> [interval period]
+  (t.i/new-interval
+   (date->> (t/beginning interval) period)
+   (date->> (t/end interval) period)))
+
 (defn month-dates [year month]
   (letfn [(month?
             [month date]

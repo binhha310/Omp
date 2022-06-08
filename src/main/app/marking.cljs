@@ -1,6 +1,6 @@
 (ns app.marking
   (:require
-   [app.utils :as u]
+   [app.utils :as u :refer (date->> interval->>)]
    [tick.core :as t]
    [tick.alpha.interval :as t.i]))
 
@@ -8,13 +8,6 @@
   {:space "transparent"
    :events "#50fa7b"
    :todos "#ffb86c"})
-
-(def periods
-  {:no [0 :days]
-   :day [1 :days]
-   :week [7 :days]
-   :month [1 :months]
-   :year [1 :years]})
 
 (defn- insert-vector [a start b]
   (let [length (count a)
@@ -35,7 +28,7 @@
          (take-while false?)
          count)))
 
-(defn gravity [matrix subvec start space-val]
+(defn- gravity [matrix subvec start space-val]
   (let [matrix (if (vector? matrix) matrix (vec matrix))
         column (count (peek matrix))
         sub (if (> 0 start)
@@ -56,15 +49,6 @@
                           #(not= :precedes (:decor %))
                           (cons {:type type :decor (t.i/relation interval date)}
                                 (decor type interval (t/inc date)))))))
-
-(defn- date->> [date period]
-  (t/>> date (apply t/new-period
-                    (period periods))))
-
-(defn- interval->> [interval period]
-  (t.i/new-interval
-   (date->> (t/beginning interval) period)
-   (date->> (t/end interval) period)))
 
 (defn repeat-handler [matrix decoration positions]
   (loop [matrix matrix
@@ -106,7 +90,7 @@
             (recur new-matrix (rest coll)))
           matrix)))))
 
-(defn- todo-relevant? [first last date]
+(defn todo-relevant? [first last date]
   (and (t/<= date last)
        (t/>= date first)))
 
@@ -117,7 +101,7 @@
         decor-type :todos]
     (decor-month-factory decor-type relevant? timeshift position)))
 
-(defn- event-relevant? [first last interval]
+(defn event-relevant? [first last interval]
   (let [beginning (-> interval t/beginning t/date)
         end (-> interval t/end t/date)]
     (or (and (t/<= beginning last)
