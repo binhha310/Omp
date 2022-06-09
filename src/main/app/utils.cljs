@@ -122,10 +122,13 @@
 (defn today []
   (t/today))
 
-
 (defn tomorrow []
   (-> (t/now)
       (t/>> (t/new-duration 1 :days))))
+
+(defn next-hour [datetime]
+  (-> datetime
+      (t/>> (t/new-duration 1 :hours))))
 
 (defn ->js-dt [date-time]
   (-> date-time

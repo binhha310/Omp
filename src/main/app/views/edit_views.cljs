@@ -2,13 +2,18 @@
   (:require
    ["react-native" :as rn]
    [reagent.core :as r]
+   [tick.core :as t :refer (interval? beginning end)]
    [re-frame.core :refer (dispatch)]
-   [app.utils :refer (repeat-string set-time today now get-date get-time tomorrow ->js-dt interval)]
+   [app.utils :refer (repeat-string set-time now get-date get-time tomorrow ->js-dt interval next-hour)]
    ["react-native-date-picker" :default DatePicker]
-   ["react-native-paper" :refer (TextInput Divider List IconButton Switch Button Menu)]))
+   ["react-native-paper" :refer (TextInput Divider List IconButton Switch Button Menu Banner Portal)]))
 
 (def styles
-  ^js (-> {:marking
+  ^js (-> {:banner
+           {:position "static"
+            :top 0
+            :background "#ffffff"}
+           :marking
            {:flex 1
             :justifyContent "space-between"
             :flexDirection "column"}
@@ -44,12 +49,11 @@
 (defn locale-format [date]
   (.toLocaleString date))
 
-(defn date-picker! [mode default]
-  (let [open (r/atom false)
-        date default]
-    (do
-      (swap! date #(->js-dt %))
-      (fn []
+(defn date-picker! [mode date]
+  (let [open (r/atom false)]
+    (fn []
+      (do
+        (swap! date #(->js-dt %))
         [:> rn/View {:style (.-container styles)}
          [:> Button {:on-press #(swap! open not)} (case mode
                                                     "datetime" (str (locale-format @date))
@@ -90,21 +94,34 @@
      [:> rn/View {:style (.-markingValue styles)}
       [:> TextInput {:label "Description"}]]]))
 
-(defn event-time [allDay beginningTime endingTime]
-  (fn []
-    [:> rn/View {:style (.-markingProperty styles)}
-     [:> rn/View {:style (.-icon styles)}
-      [:> IconButton {:size 32 :icon "clock-outline"}]]
-     [:> rn/View {:style (.-markingValue styles)}
-      [:> rn/View {:style (.-property styles)}
-       [:> rn/Text "Entire day?"]
-       [:> Switch {:value @allDay :onValueChange #(swap! allDay not)}]]
-      [:> rn/View {:style (.-property styles)}
-       [:> rn/Text "Beginning: "]
-       [date-picker allDay beginningTime]]
-      [:> rn/View {:style (.-property styles)}
-       [:> rn/Text "Ending: "]
-       [date-picker allDay endingTime]]]]))
+(defn event-time [disabled? allDay time]
+  (let [beginning (r/atom (beginning @time))
+        end (r/atom (end @time))
+        validTime? (fn [] (t/> @end @beginning))
+        valid (r/track! validTime?)]
+    (fn []
+      (do
+        (reset! disabled? (not @valid))
+        (when @valid (reset! time (interval @beginning @end)))
+        [:> rn/View
+         [:> Banner {:visible (not @valid)
+                     :style (.-banner styles)
+                     :actions (clj->js [{:label "OK"
+                                         :onPress #(reset! end (next-hour @beginning))}])}
+          "Invalid time, end datetime must be larger than beginning datetime"]
+         [:> rn/View {:style (.-markingProperty styles)}
+          [:> rn/View {:style (.-icon styles)}
+           [:> IconButton {:size 32 :icon "clock-outline"}]]
+          [:> rn/View {:style (.-markingValue styles)}
+           [:> rn/View {:style (.-property styles)}
+            [:> rn/Text "Entire day?"]
+            [:> Switch {:value @allDay :onValueChange #(swap! allDay not)}]]
+           [:> rn/View {:style (.-property styles)}
+            [:> rn/Text "Beginning: "]
+            [date-picker allDay beginning]]
+           [:> rn/View {:style (.-property styles)}
+            [:> rn/Text "Ending: "]
+            [date-picker allDay end]]]]]))))
 
 (defn todo-time [date]
   (let [date-time (r/atom (now))]
@@ -152,15 +169,14 @@
        [:> rn/View {:style (.-markingValue styles)}
         [:> TextInput {:label name-label :on-change-text #(reset! name! %)}]]])))
 
-(defn save [{:keys [navigation type time name repeat]}]
+(defn save [{:keys [disabled navigation type new]}]
   (fn []
     [:> Button {:mode "contained"
+                :disabled (when disabled @disabled)
                 :on-press #(do
                              (dispatch [:add-data
                                         {:type type
-                                         :new {:time @time
-                                               :name @name
-                                               :repeat @repeat}}])
+                                         :new @new}])
                              (.popToTop navigation))}
      "Save"]))
 
@@ -177,37 +193,44 @@
       repeat]
      save]))
 
-(defn event-add-view [{:keys [navigation]}]
-  (let [allDay (r/atom false)
-        name (r/atom "")
-        rep (r/atom :no)
-        beginning (r/atom (now))
-        end (r/atom (tomorrow))
-        new-interval (fn [] (interval @beginning @end))]
-    (fn []
+(defn event-view [default]
+  (let [new (r/atom default)
+        allDay (r/atom false)
+        name (r/cursor new [:name])
+        repeat (r/cursor new [:repeat])
+        time (r/cursor new [:time])
+        disabled? (r/atom false)]
+    (fn [{:keys [navigation]}]
       [adding-view
-       [marking-name "event" name]
-       [marking-description "event"]
-       [event-time allDay beginning end]
-       [marking-repeat rep]
-       [save {:navigation navigation
+       [marking-name "Event" name]
+       [marking-description "Event"]
+       [event-time disabled? allDay time]
+       [marking-repeat repeat]
+       [save {:disabled disabled?
+              :navigation navigation
               :type :events
-              :time (r/track new-interval)
-              :name name
-              :repeat rep}]])))
+              :new new}]])))
 
-(defn todo-add-view [{:keys [navigation]}]
-  (let [name (r/atom "")
-        rep (r/atom :no)
-        time (r/atom (today))]
-    (fn []
+;; use today for deault time
+(defn todo-view [default]
+  (let [new (r/atom default)
+        name (r/cursor new [:name])
+        repeat (r/cursor new [:repeat])
+        time (r/cursor new [:time])]
+    (fn [{:keys [navigation]}]
       [adding-view
-       [marking-name "todo" name]
-       [marking-description "todo"]
+       [marking-name "Todo" name]
+       [marking-description "Todo"]
        [todo-time time]
-       [marking-repeat rep]
+       [marking-repeat repeat]
        [save {:navigation navigation
               :type :todos
-              :time time
-              :name name
-              :repeat rep}]])))
+              :new new}]])))
+
+(def event-add-view (event-view {:name ""
+                                 :time (interval (now) (tomorrow))
+                                 :repeat :no}))
+
+(def todo-add-view (todo-view {:name ""
+                               :time (now)
+                               :repeat :no}))
