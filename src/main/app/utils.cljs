@@ -161,3 +161,10 @@
   (t.i/new-interval
    (t/date-time starting)
    (t/date-time ending)))
+
+(def repeat-string
+  {:no "No"
+   :day "Daily"
+   :week "Weekly"
+   :month "Monthly"
+   :year "Annual"})

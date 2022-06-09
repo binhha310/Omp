@@ -46,12 +46,9 @@
 (reg-event-db
  :add-data
  data-interceptors
- (fn [data [_ {:keys [type time name repeat]}]]
+ (fn [data [_ {:keys [type new]}]]
    (let [id (allocate-next-id)
-         new {:id id
-              :time time
-              :name name
-              :repeat repeat}]
+         new (assoc-in new [:id] id)]
      (update-in data [type] #(conj % new)))))
 
 (reg-event-db

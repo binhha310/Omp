@@ -53,10 +53,11 @@
     [beginning end]))
 
 
-(defn button-view [i name date]
+(defn button-view [navigation i event date]
   (let [[top bottom] (handle-relation date i)
         marginTop top
         marginBottom (if (= 0 bottom) 0 (- 1440 bottom))
+        navigate #(.navigate navigation "EventDetail", event)
         style (->
                {:justifyContent "center"
                 :textAlign "center"
@@ -66,8 +67,8 @@
                (clj->js)
                (rn/StyleSheet.create))]
     (fn []
-      [:> Button {:mode "contained" :style style}
-       name])))
+      [:> Button {:mode "contained" :style style :on-press navigate}
+       (:name event)])))
 
 (defn hour-view [num]
   (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
@@ -101,7 +102,7 @@
          :when (= id current)]
      e)))
 
-(defn details-view [{:keys [route]}]
+(defn details-view [{:keys [route navigation]}]
   (let [dateObj (:date (.-params route))
         date (t/date (.-dateString ^js dateObj))
         data (subscribe [:data])
@@ -115,7 +116,7 @@
          [:> rn/View {:style (.-markingView styles)}
           (when (seq relate-intervals)
             (for [[id intervals] relate-intervals
-                  :let [name (:name (get-event events id))]
+                  :let [event (get-event events id)]
                   :when (seq intervals)]
               (for [i intervals]
-                [button-view i name date])))]]))))
+                [button-view navigation i event date])))]]))))

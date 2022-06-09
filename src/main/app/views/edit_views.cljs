@@ -1,9 +1,9 @@
-(ns app.views
+(ns app.views.edit-views
   (:require
    ["react-native" :as rn]
    [reagent.core :as r]
    [re-frame.core :refer (dispatch)]
-   [app.utils :refer (set-time today now get-date get-time tomorrow ->js-dt interval)]
+   [app.utils :refer (repeat-string set-time today now get-date get-time tomorrow ->js-dt interval)]
    ["react-native-date-picker" :default DatePicker]
    ["react-native-paper" :refer (TextInput Divider List IconButton Switch Button Menu)]))
 
@@ -118,13 +118,6 @@
          [:> rn/Text "Date: "]
          [date-picker date-time]]]])))
 
-(def repeat-descript
-  {:no "No loop"
-   :day "Daily"
-   :week "Weekly"
-   :month "Monthly"
-   :year "Annual"})
-
 (defn marking-repeat [repeat!]
   (let [visible (r/atom false)
         repeat-item (fn [key value]
@@ -142,13 +135,13 @@
        [:> rn/View {:style (.-markingValue styles)}
         [:> rn/View {:style (.-property styles)}
          [:> rn/Text "Repeat?"]
-          [:> Menu {:visible @visible
-                    :on-dismiss #(swap! visible not)
-                    :anchor (r/create-element
-                             (r/reactify-component anchor) #js{:title (@repeat! repeat-descript)})}
-           (for [[key value] repeat-descript]
-             ^{:key key}
-             [repeat-item key value])]]]])))
+         [:> Menu {:visible @visible
+                   :on-dismiss #(swap! visible not)
+                   :anchor (r/create-element
+                            (r/reactify-component anchor) #js{:title (@repeat! repeat-string)})}
+          (for [[key value] repeat-string]
+            ^{:key key}
+            [repeat-item key value])]]]])))
 
 (defn marking-name [mode name!]
   (let [name-label (str mode " name")]
@@ -162,16 +155,12 @@
 (defn save [{:keys [navigation type time name repeat]}]
   (fn []
     [:> Button {:mode "contained"
-                :on-press #(let [time (case type
-                                        :events (interval
-                                                 @(:beginning time)
-                                                 @(:ending time))
-                                        :todos @time)]
+                :on-press #(do
                              (dispatch [:add-data
                                         {:type type
-                                         :time time
-                                         :name @name
-                                         :repeat @repeat}])
+                                         :new {:time @time
+                                               :name @name
+                                               :repeat @repeat}}])
                              (.popToTop navigation))}
      "Save"]))
 
@@ -179,32 +168,33 @@
   (fn []
     [:> rn/View {:style (.-marking styles)}
      [:> rn/View {:style (.-markingProperties styles)}
-      [name]
+      name
       [:> Divider]
-      [description]
+      description
       [:> Divider]
-      [time]
+      time
       [:> Divider]
-      [repeat]]
-     [save]]))
+      repeat]
+     save]))
 
 (defn event-add-view [{:keys [navigation]}]
   (let [allDay (r/atom false)
         name (r/atom "")
         rep (r/atom :no)
-        starting (r/atom (now))
-        ending (r/atom (tomorrow))]
+        beginning (r/atom (now))
+        end (r/atom (tomorrow))
+        new-interval (fn [] (interval @beginning @end))]
     (fn []
       [adding-view
-       (fn [] [marking-name "event" name])
-       (fn [] [marking-description "event"])
-       (fn [] [event-time allDay starting ending])
-       (fn [] [marking-repeat rep])
-       (fn [] [save {:navigation navigation
-                     :type :events
-                     :time {:beginning starting :ending ending}
-                     :name name
-                     :repeat rep}])])))
+       [marking-name "event" name]
+       [marking-description "event"]
+       [event-time allDay beginning end]
+       [marking-repeat rep]
+       [save {:navigation navigation
+              :type :events
+              :time (r/track new-interval)
+              :name name
+              :repeat rep}]])))
 
 (defn todo-add-view [{:keys [navigation]}]
   (let [name (r/atom "")
@@ -212,12 +202,12 @@
         time (r/atom (today))]
     (fn []
       [adding-view
-       (fn [] [marking-name "todo" name])
-       (fn [] [marking-description "todo"])
-       (fn [] [todo-time time])
-       (fn [] [marking-repeat rep])
-       (fn [] [save {:navigation navigation
-                     :type :todos
-                     :time time
-                     :name name
-                     :repeat rep}])])))
+       [marking-name "todo" name]
+       [marking-description "todo"]
+       [todo-time time]
+       [marking-repeat rep]
+       [save {:navigation navigation
+              :type :todos
+              :time time
+              :name name
+              :repeat rep}]])))
