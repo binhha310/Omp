@@ -10,6 +10,12 @@
             :margin 16
             :right 0
             :bottom 0}
+           :activity
+           {:flex 1
+            :height "100%"
+            :flexDirection "column"
+            :justifyContent "flex-end"
+            :alignItems "flex-end"}
            :activityFab
            {:position "relative"
             :marginBottom 16
@@ -22,7 +28,7 @@
 (defn fab [{:keys [style icon callback]}]
   [:> FAB {:icon icon
            :style style
-           :on-press (fn [] (callback))}])
+           :on-press #(callback)}])
 
 (defn main-view [{:keys [navigation]}]
   (let [to-activity #(.navigate navigation "Activity")]

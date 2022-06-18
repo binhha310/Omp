@@ -4,6 +4,7 @@
    [reagent.core :as r]
    [tick.core :as t :refer (interval? beginning end)]
    [re-frame.core :refer (dispatch)]
+   [app.views.activities :refer (fab)]
    [app.utils :refer (repeat-string set-time now get-date get-time tomorrow ->js-dt interval next-hour)]
    ["react-native-date-picker" :default DatePicker]
    ["react-native-paper" :refer (TextInput Divider List IconButton Switch Button Menu Banner Portal)]))
@@ -13,6 +14,14 @@
            {:position "static"
             :top 0
             :background "#ffffff"}
+           :container
+           {:flex 1}
+           :deleteFab
+           {:position "absolute"
+            :margin 16
+            :marginBottom 48
+            :bottom 0
+            :right 0}
            :marking
            {:flex 1
             :justifyContent "space-between"
@@ -204,6 +213,13 @@
       repeat]
      save]))
 
+(defn- delete [{:keys [navigation type id]}]
+  (do
+    (dispatch [:delete-data
+               {:type type
+                :id id}])
+    (.popToTop navigation)))
+
 (defn event-view [default action]
   (let [new (r/atom default)
         allDay (r/atom false)
@@ -212,15 +228,15 @@
         time (r/cursor new [:time])
         disabled? (r/atom false)]
     (fn [{:keys [navigation]}]
-      [adding-view
-       [marking-name "Event" name]
-       [marking-description "Event"]
-       [event-time disabled? allDay time]
-       [marking-repeat repeat]
-       [action {:disabled disabled?
-                :navigation navigation
-                :type :events
-                :new new}]])))
+       [adding-view
+        [marking-name "Event" name]
+        [marking-description "Event"]
+        [event-time disabled? allDay time]
+        [marking-repeat repeat]
+        [action {:disabled disabled?
+                 :navigation navigation
+                 :type :events
+                 :new new}]])))
 
 ;; use today for deault time
 (defn todo-view [default]
@@ -245,7 +261,14 @@
 
 (defn event-update-view [{:keys [navigation route]}]
   (let [event (.-params route)]
-    (event-view event update-button)))
+    [:> rn/View {:style (.-container styles)}
+     (when (:id event)
+       [fab {:style (.-deleteFab styles)
+             :icon "delete"
+             :callback #(delete {:navigation navigation
+                                 :type :events
+                                 :id (:id event)})}])
+     [event-view event update-button]]))
 
 (def todo-add-view (todo-view {:name ""
                                :time (now)
