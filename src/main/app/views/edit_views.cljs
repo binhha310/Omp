@@ -167,7 +167,7 @@
        [:> rn/View {:style (.-icon styles)}
         [:> IconButton {:size 32 :icon "calendar"}]]
        [:> rn/View {:style (.-markingValue styles)}
-        [:> TextInput {:label name-label :on-change-text #(reset! name! %)}]]])))
+        [:> TextInput {:label name-label :value @name! :on-change-text #(reset! name! %)}]]])))
 
 (defn save [{:keys [disabled navigation type new]}]
   (fn []
@@ -179,6 +179,17 @@
                                          :new @new}])
                              (.popToTop navigation))}
      "Save"]))
+
+(defn update-button [{:keys [disabled navigation type new]}]
+  (fn []
+    [:> Button {:mode "contained"
+                :disabled (when disabled @disabled)
+                :on-press #(do
+                             (dispatch [:update-data
+                                        {:type type
+                                         :marking @new}])
+                             (.popToTop navigation))}
+     "Update"]))
 
 (defn adding-view [name description time repeat save]
   (fn []
@@ -193,7 +204,7 @@
       repeat]
      save]))
 
-(defn event-view [default]
+(defn event-view [default action]
   (let [new (r/atom default)
         allDay (r/atom false)
         name (r/cursor new [:name])
@@ -206,10 +217,10 @@
        [marking-description "Event"]
        [event-time disabled? allDay time]
        [marking-repeat repeat]
-       [save {:disabled disabled?
-              :navigation navigation
-              :type :events
-              :new new}]])))
+       [action {:disabled disabled?
+                :navigation navigation
+                :type :events
+                :new new}]])))
 
 ;; use today for deault time
 (defn todo-view [default]
@@ -229,7 +240,12 @@
 
 (def event-add-view (event-view {:name ""
                                  :time (interval (now) (tomorrow))
-                                 :repeat :no}))
+                                 :repeat :no}
+                                save))
+
+(defn event-update-view [{:keys [navigation route]}]
+  (let [event (.-params route)]
+    (event-view event update-button)))
 
 (def todo-add-view (todo-view {:name ""
                                :time (now)

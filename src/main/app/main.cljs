@@ -8,11 +8,10 @@
    ["react-native-paper" :refer (DarkTheme Provider FAB Button)]
    ["@react-navigation/native" :refer (NavigationContainer)]
    ["@react-navigation/native-stack" :refer (createNativeStackNavigator)]
-   [app.views.edit-views :refer (event-add-view todo-add-view)]
+   [app.views.edit-views :refer (event-add-view todo-add-view event-update-view)]
    [app.events]
    [app.subs]
    [app.views.details :refer (details-view)]
-   [app.views.event :refer (event-view)]
    [app.calendar :refer (calendar)]))
 
 ;; must use defonce and must refresh full app so metro can fill these in
@@ -84,7 +83,7 @@
         NewEvent (r/reactify-component event-add-view)
         NewTodo (r/reactify-component todo-add-view)
         Details (r/reactify-component details-view)
-        EventDetail (r/reactify-component event-view)]
+        EventDetail (r/reactify-component event-update-view)]
     (fn []
       [:> NavigationContainer
        [:> (.-Navigator Stack) {:screenOptions​ {:headerShown false}}

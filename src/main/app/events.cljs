@@ -2,7 +2,7 @@
   (:require
    [app.db :refer [default-db save-local-database]]
    [app.utils :refer (year-month)]
-   [re-frame.core :refer [reg-event-db reg-event-fx reg-fx inject-cofx path after]]
+   [re-frame.core :refer [reg-event-db reg-event-fx reg-fx inject-cofx path after dispatch]]
    [cljs.spec.alpha :as s]))
 
 (defn check-and-throw
@@ -47,14 +47,25 @@
  :add-data
  data-interceptors
  (fn [data [_ {:keys [type new]}]]
-   (let [id (allocate-next-id)
-         new (assoc-in new [:id] id)]
+   (let [new (if-not (:id new)
+               (->> (allocate-next-id)
+                    (assoc-in new [:id]))
+               new)]
      (update-in data [type] #(conj % new)))))
 
 (reg-event-db
  :delete-data
  data-interceptors
- (fn [data [_ id]]
-   (let [has-id (fn [map id] (some #{[:id id]} (seq map)))
-         drop (fn [vector id] (filter #(has-id % id) vector))]
-     (map #(drop % id) data))))
+ (fn [data [_ {:keys [type id]}]]
+   (let [has-id? (fn [marking] (= id (:id marking)))
+         drop (fn [markings] (filter (complement has-id?) markings))]
+     (update-in data [type] drop))))
+
+(reg-event-db
+ :update-data
+ data-interceptors
+ (fn [data [_ {:keys [type marking]}]]
+   (do
+     (dispatch [:delete-data {:type type :id (:id marking)}])
+     (dispatch [:add-data {:type type :new marking}])
+     data)))
