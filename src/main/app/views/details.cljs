@@ -10,12 +10,40 @@
    [app.utils :refer (interval->> calendar-dates)]))
 
 (def styles
-  ^js (-> {:hour
+  ^js (-> {:horizontal
+           {:height 60
+            :width "100%"}
+           :hour
            {:borderBottomStyle "solid"
             :borderWidth 1
             :borderColor "rgba(0, 0, 0, 0.1)"
             :height 60
             :margin 0}
+           :todo
+           {:flex 1
+            :padding 10
+            :borderRadius 10
+            :marginHorizontal 5
+            :alignItems "center"
+            :backgroundColor "#ffb86c"
+            :justifyContent "center"}
+           :event
+           {:flex 1
+            :padding 10
+            :borderRadius 10
+            :marginHorizontal 5
+            :alignItems "center"
+            :backgroundColor "#50fa7b"
+            :justifyContent "center"}
+           :date
+           {:justifyContent "center"
+            :alignItems "center"}
+           :dateTitle
+           {:fontSize 20
+            :fontWeight "bold"}
+           :title
+           {:fontSize 15
+            :fontWeight "bold"}
            :markingView
            {:position "absolute"
             :flexDirection "row"
@@ -53,24 +81,34 @@
     [beginning end]))
 
 
-(defn button-view [navigation i event date]
-  (let [[top bottom] (handle-relation date i)
-        marginTop top
-        marginBottom (if (= 0 bottom) 0 (- 1440 bottom))
-        navigate #(.navigate navigation "EventDetail", event)
-        style (->
-               {:justifyContent "center"
-                :textAlign "center"
-                :flex 1
-                :marginTop marginTop
-                :marginBottom marginBottom}
-               (clj->js)
-               (rn/StyleSheet.create))]
-    (fn []
-      [:> Button {:mode "contained" :style style :on-press navigate}
-       (:name event)])))
+(defn- event-view
+  ([navigation top bottom event]
+   (let [marginTop top
+         marginBottom (if (= 0 bottom) 0 (- 1440 bottom))
+         navigate #(.navigate navigation "EventDetail", event)
+         positionStyle (->
+                        {:marginTop marginTop
+                         :marginBottom marginBottom}
+                        (clj->js)
+                        (rn/StyleSheet.create))
+         style (rn/StyleSheet.compose positionStyle (.-event styles))]
+     (fn []
+       [:> rn/TouchableOpacity {:style style :on-press navigate}
+        [:> rn/Text {:style (.-title styles)} (:name event)]])))
+  ([navigation event]
+   (let [navigate #(.navigate navigation "EventDetail", event)]
+     (fn []
+       [:> rn/TouchableOpacity {:style (.-event styles) :on-press navigate}
+        [:> rn/Text {:style (.-title styles)} (:name event)]]))))
 
-(defn hour-view [num]
+(defn- todo-view
+  [navigation event]
+   (let [navigate #(.navigate navigation "EventDetail", event)]
+     (fn []
+       [:> rn/TouchableOpacity {:style (.-todo styles) :on-press navigate}
+        [:> rn/Text {:style (.-title styles)} (:name event)]])))
+
+(defn- hour-view [num]
   (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
     [:> rn/View {:style (.-hour styles)}
      [:> rn/Text text]]))
@@ -102,21 +140,48 @@
          :when (= id current)]
      e)))
 
+;; Some thing like ((e1 i1) (e1 i2) (e2 i3) (e2 i4))
+(defn- pair! [events map-of-vector]
+  (when (seq map-of-vector)
+    (let [m map-of-vector
+          get-pair (partial partition 2)
+          pairs-seq (for [[id intervals] m
+                          :let [event (get-event events id)
+                                pairs (get-pair (interleave (repeat event) intervals))]]
+                      pairs)]
+      (apply concat pairs-seq))))
+
+(defn- day-view [navigation date todos events]
+  (fn []
+    [:> rn/ScrollView {:style (.-horizontal styles) :horizontal true}
+     [:> rn/View {:style (.-date styles)}
+      [:> rn/Text {:style (.-dateTitle styles)} (str date ": ")]]
+     (for [todo todos]
+       [todo-view navigation todo])
+     (for [[event _] events]
+       [event-view navigation event])]))
+
 (defn details-view [{:keys [route navigation]}]
   (let [dateObj (:date (.-params route))
         date (t/date (.-dateString ^js dateObj))
         data (subscribe [:data])
-        month (subscribe [:month])]
+        full? (fn [s]
+                (let [[_ i] s]
+                  (= [0 0] (handle-relation date i))))]
     (fn []
       (let [events (:events @data)
-            relate-intervals (relate-intervals events date)]
-        [:> rn/ScrollView {:style (.-container styles)}
-         (for [i (range 24)]
-           [hour-view i])
-         [:> rn/View {:style (.-markingView styles)}
-          (when (seq relate-intervals)
-            (for [[id intervals] relate-intervals
-                  :let [event (get-event events id)]
-                  :when (seq intervals)]
-              (for [i intervals]
-                [button-view navigation i event date])))]]))))
+            todos (:todos @data)
+            relate-intervals (relate-intervals events date)
+            event-interval-pairs (pair! events relate-intervals)
+            full-days (filter full? event-interval-pairs)
+            partials (filter (complement full?) event-interval-pairs)]
+        [:> rn/View {:style (.-container styles)}
+         [day-view navigation date todos full-days]
+         [:> rn/ScrollView {:style (.-container styles)}
+          (for [i (range 24)]
+            [hour-view i])
+          [:> rn/View {:style (.-markingView styles)}
+           (when (seq partials)
+             (for [[event i] partials
+                   :let [[top bottom] (handle-relation date i)]]
+               [event-view navigation top bottom event]))]]]))))

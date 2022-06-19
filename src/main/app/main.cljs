@@ -52,7 +52,7 @@
                               :options #js{}}]
         [:> (.-Screen Stack) {:name "Details"
                               :component Details
-                              :options #js{}}]
+                              :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "EventDetail"
                               :component EventDetail
                               :options {:headerShown true

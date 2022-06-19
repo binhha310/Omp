@@ -178,7 +178,7 @@
        [:> rn/View {:style (.-markingValue styles)}
         [:> TextInput {:label name-label :value @name! :on-change-text #(reset! name! %)}]]])))
 
-(defn save [{:keys [disabled navigation type new]}]
+(defn save-button [{:keys [disabled navigation type new]}]
   (fn []
     [:> Button {:mode "contained"
                 :disabled (when disabled @disabled)
@@ -200,7 +200,7 @@
                              (.popToTop navigation))}
      "Update"]))
 
-(defn adding-view [name description time repeat save]
+(defn adding-view [name description time repeat action]
   (fn []
     [:> rn/View {:style (.-marking styles)}
      [:> rn/View {:style (.-markingProperties styles)}
@@ -211,7 +211,7 @@
       time
       [:> Divider]
       repeat]
-     save]))
+     action]))
 
 (defn- delete [{:keys [navigation type id]}]
   (do
@@ -220,7 +220,8 @@
                 :id id}])
     (.popToTop navigation)))
 
-(defn event-view [default action]
+(defn event-view
+  [default action]
   (let [new (r/atom default)
         allDay (r/atom false)
         name (r/cursor new [:name])
@@ -228,15 +229,15 @@
         time (r/cursor new [:time])
         disabled? (r/atom false)]
     (fn [{:keys [navigation]}]
-       [adding-view
-        [marking-name "Event" name]
-        [marking-description "Event"]
-        [event-time disabled? allDay time]
-        [marking-repeat repeat]
-        [action {:disabled disabled?
-                 :navigation navigation
-                 :type :events
-                 :new new}]])))
+      [adding-view
+       [marking-name "Event" name]
+       [marking-description "Event"]
+       [event-time disabled? allDay time]
+       [marking-repeat repeat]
+       [action {:disabled disabled?
+                :navigation navigation
+                :type :events
+                :new new}]])))
 
 ;; use today for deault time
 (defn todo-view [default]
@@ -250,17 +251,19 @@
        [marking-description "Todo"]
        [todo-time time]
        [marking-repeat repeat]
-       [save {:navigation navigation
+       [save-button {:navigation navigation
               :type :todos
               :new new}]])))
 
-(def event-add-view (event-view {:name ""
-                                 :time (interval (now) (tomorrow))
-                                 :repeat :no}
-                                save))
+(def event-default {:name ""
+                    :time (interval (now) (tomorrow))
+                    :repeat :no})
+
+(def event-add-view (event-view event-default save-button))
 
 (defn event-update-view [{:keys [navigation route]}]
-  (let [event (.-params route)]
+  (let [event (.-params route)
+        update-view (event-view event update-button)]
     [:> rn/View {:style (.-container styles)}
      (when (:id event)
        [fab {:style (.-deleteFab styles)
@@ -268,8 +271,10 @@
              :callback #(delete {:navigation navigation
                                  :type :events
                                  :id (:id event)})}])
-     [event-view event update-button]]))
+     [update-view {:navigation navigation}]]))
 
-(def todo-add-view (todo-view {:name ""
-                               :time (now)
-                               :repeat :no}))
+(def todo-default {:name ""
+                   :time (now)
+                   :repeat :no})
+
+(def todo-add-view (todo-view todo-default))
