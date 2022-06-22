@@ -5,6 +5,9 @@
    [tick.core :as t :refer (interval? beginning end)]
    [re-frame.core :refer (dispatch)]
    [app.views.activities :refer (fab)]
+   [app.views.themes
+    :refer (dracula)
+    :rename {dracula theme}]
    [app.utils :refer (repeat-string set-time now get-date get-time tomorrow ->js-dt interval next-hour)]
    ["react-native-date-picker" :default DatePicker]
    ["react-native-paper" :refer (TextInput Divider List IconButton Switch Button Menu Banner Portal)]))
@@ -13,17 +16,23 @@
   ^js (-> {:banner
            {:position "static"
             :top 0
-            :background "#ffffff"}
+            :color (:red theme)}
            :container
            {:flex 1}
+           :datePicker
+           {:alignSelf "flex-end"
+            :color (:purple theme)}
            :deleteFab
            {:position "absolute"
             :margin 16
+            :backgroundColor (:red theme)
             :marginBottom 48
             :bottom 0
             :right 0}
            :marking
            {:flex 1
+            :backgroundColor (:background theme)
+            :color (:foreground theme)
             :justifyContent "space-between"
             :flexDirection "column"}
            :markingName
@@ -49,24 +58,27 @@
            {:flex -1
             :flexDirection "row"
             :alignItems "center"
-            :justifyContent "space-between"}
-           :save
-           {:alignSelf "flex-end"}}
+            :justifyContent "space-between"}}
           (clj->js)
           (rn/StyleSheet.create)))
 
 (defn locale-format [date]
   (.toLocaleString date))
 
-(defn date-picker! [mode date]
+(defn- date-picker! [mode date]
   (let [open (r/atom false)]
     (fn []
       (do
         (swap! date #(->js-dt %))
-        [:> rn/View {:style (.-container styles)}
-         [:> Button {:on-press #(swap! open not)} (case mode
-                                                    "datetime" (str (locale-format @date))
-                                                    "date" (str (locale-format (get-date @date))))]
+        [:> rn/View {:style (.-datePicker styles)}
+         [:> rn/TouchableOpacity {:on-press #(swap! open not)}
+          [:> rn/Text {:style #js {:color (:purple theme)
+                                   :fontWeight "bold"
+                                   :margin 10
+                                   :fontSize 18}}
+           (case mode
+             "datetime" (str (locale-format @date))
+             "date" (str (locale-format (get-date @date))))]]
          [:> DatePicker {:modal true
                          :date @date
                          :open @open
@@ -79,7 +91,7 @@
                          :mode mode
                          :on-date-change #(reset! date %)}]]))))
 
-(defn date-picker
+(defn- date-picker
   ([allDay! datetime!]
    (let [datetime-picker (partial date-picker! "datetime")
          date-picker (partial date-picker! "date")
@@ -99,7 +111,7 @@
   (fn []
     [:> rn/View {:style (.-markingProperty styles)}
      [:> rn/View {:style (.-icon styles)}
-      [:> IconButton {:size 32 :icon "text"}]]
+      [:> IconButton {:size 32 :icon "text" :color (:foreground theme)}]]
      [:> rn/View {:style (.-markingValue styles)}
       [:> TextInput {:label "Description"}]]]))
 
@@ -120,16 +132,16 @@
           "Invalid time, end datetime must be larger than beginning datetime"]
          [:> rn/View {:style (.-markingProperty styles)}
           [:> rn/View {:style (.-icon styles)}
-           [:> IconButton {:size 32 :icon "clock-outline"}]]
+           [:> IconButton {:size 32 :icon "clock-outline" :color (:foreground theme)}]]
           [:> rn/View {:style (.-markingValue styles)}
            [:> rn/View {:style (.-property styles)}
-            [:> rn/Text "Entire day?"]
+            [:> rn/Text {:style {:color (:foreground theme)}} "Entire day?"]
             [:> Switch {:value @allDay :onValueChange #(swap! allDay not)}]]
            [:> rn/View {:style (.-property styles)}
-            [:> rn/Text "Beginning: "]
+            [:> rn/Text {:style {:color (:foreground theme)}} "Beginning: "]
             [date-picker allDay beginning]]
            [:> rn/View {:style (.-property styles)}
-            [:> rn/Text "Ending: "]
+            [:> rn/Text {:style {:color (:foreground theme)}} "Ending: "]
             [date-picker allDay end]]]]]))))
 
 (defn todo-time [date]
@@ -138,30 +150,37 @@
       (reset! date (get-date @date-time))
       [:> rn/View {:style (.-markingProperty styles)}
        [:> rn/View {:style (.-icon styles)}
-        [:> IconButton {:size 32 :icon "clock-outline"}]]
+        [:> IconButton {:size 32 :icon "clock-outline" :color (:foreground theme)}]]
        [:> rn/View {:style (.-markingValue styles)}
         [:> rn/View {:style (.-property styles)}
-         [:> rn/Text "Date: "]
+         [:> rn/Text {:style {:color (:foreground theme)}}"Date: "]
          [date-picker date-time]]]])))
 
-(defn marking-repeat [repeat!]
+(defn- marking-repeat [repeat!]
   (let [visible (r/atom false)
         repeat-item (fn [key value]
-                      [:> (.-Item Menu) {:on-press (fn []
+                      [:> (.-Item Menu) {:titleStyle #js {:color (:purple theme)}
+                                         :style #js {:backgroundColor (:current_line theme)}
+                                         :on-press (fn []
                                                      (do
                                                        (swap! visible not)
                                                        (reset! repeat! key)))
                                          :title value}])
         anchor (fn [props]
-                 [:> Button {:on-press #(swap! visible not)} (:title props)])]
+                 [:> rn/TouchableOpacity {:on-press #(swap! visible not)
+                                          :style {:margin 5}}
+                  [:> rn/Text {:style {:color (:purple theme)
+                                       :fontSize 20
+                                       :fontWeight "bold"}} (:title props)]])]
     (fn []
       [:> rn/View {:style (.-markingProperty styles)}
        [:> rn/View {:style (.-icon styles)}
-        [:> IconButton {:size 32 :icon "repeat"}]]
+        [:> IconButton {:size 32 :icon "repeat" :color (:foreground theme)}]]
        [:> rn/View {:style (.-markingValue styles)}
         [:> rn/View {:style (.-property styles)}
-         [:> rn/Text "Repeat?"]
+         [:> rn/Text {:style {:color (:foreground theme)}}"Repeat?"]
          [:> Menu {:visible @visible
+                   :contentStyle #js {:backgroundColor (:current_line theme)}
                    :on-dismiss #(swap! visible not)
                    :anchor (r/create-element
                             (r/reactify-component anchor) #js{:title (@repeat! repeat-string)})}
@@ -174,7 +193,7 @@
     (fn []
       [:> rn/View {:style (.-markingProperty styles)}
        [:> rn/View {:style (.-icon styles)}
-        [:> IconButton {:size 32 :icon "calendar"}]]
+        [:> IconButton {:size 32 :icon "calendar" :color (:foreground theme)}]]
        [:> rn/View {:style (.-markingValue styles)}
         [:> TextInput {:label name-label :value @name! :on-change-text #(reset! name! %)}]]])))
 
@@ -182,6 +201,7 @@
   (fn []
     [:> Button {:mode "contained"
                 :disabled (when disabled @disabled)
+                :color (:pink theme)
                 :on-press #(do
                              (dispatch [:add-data
                                         {:type type
@@ -193,6 +213,7 @@
   (fn []
     [:> Button {:mode "contained"
                 :disabled (when disabled @disabled)
+                :color (:pink theme)
                 :on-press #(do
                              (dispatch [:update-data
                                         {:type type
@@ -255,28 +276,28 @@
                 :type :todos
                 :new new}]])))
 
-(defn- update-view [view type {:keys [navigation route]}]
+(defn update-view [view type {:keys [navigation route]}]
   (let [marking (.-params route)
-        update-view (view marking update-button)]
-    [:> rn/View {:style (.-container styles)}
+        main-view (view marking update-button)]
+    [:> rn/View {:style {:flex 1}}
+     [main-view {:navigation navigation}]
      (when (:id marking)
        [fab {:style (.-deleteFab styles)
              :icon "delete"
              :callback #(delete {:navigation navigation
                                  :type type
-                                 :id (:id marking)})}])
-     [update-view {:navigation navigation}]]))
+                                 :id (:id marking)})}])]))
 
-(def event-default {:name ""
-                    :time (interval (now) (tomorrow))
-                    :repeat :no})
+(defonce event-default {:name ""
+                        :time (interval (now) (tomorrow))
+                        :repeat :no})
 
 (def event-add-view (event-view event-default save-button))
 
 (def event-update-view (partial update-view event-view :events))
-(def todo-default {:name ""
-                   :time (now)
-                   :repeat :no})
+(defonce todo-default {:name ""
+                       :time (now)
+                       :repeat :no})
 
 (def todo-add-view (todo-view todo-default save-button))
 (def todo-update-view (partial update-view todo-view :todos))

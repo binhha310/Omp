@@ -41,26 +41,26 @@
        [:> (.-Navigator Stack) {:screenOptions​ {:headerShown false}}
         [:> (.-Screen Stack) {:name "Home"
                               :component Home
-                              :options (clj->js {:headerShown false})}]
+                              :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "Activity"
                               :component Activity
-                              :options (clj->js {:headerShown false})}]
+                              :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "NewEvent"
                               :component NewEvent
-                              :options #js{}}]
+                              :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "NewTodo"
                               :component NewTodo
-                              :options #js{}}]
+                              :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "Details"
                               :component Details
                               :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "EventDetail"
                               :component EventDetail
-                              :options {:headerShown true
+                              :options {:headerShown false
                                         :title "Detail"}}]
         [:> (.-Screen Stack) {:name "TodoDetail"
                               :component TodoDetail
-                              :options {:headerShown true
+                              :options {:headerShown false
                                         :title "Detail"}}]]])))
 
 (defn root []

@@ -5,6 +5,9 @@
    ["react-native-paper" :refer (Button)]
    [tick.alpha.interval :as t.i]
    [tick.core :as t]
+   [app.views.themes
+    :refer (dracula)
+    :rename {dracula theme}]
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    [app.marking :refer (marking-loop event-relevant? todo-relevant?)]
    [app.utils :refer (interval->> calendar-dates)]))
@@ -13,19 +16,25 @@
   ^js (-> {:horizontal
            {:height 60
             :width "100%"}
+           :container
+           {:backgroundColor (:current_line theme)
+            :color (:foreground theme)}
            :hour
            {:borderBottomStyle "solid"
             :borderWidth 1
-            :borderColor "rgba(0, 0, 0, 0.1)"
+            :backgroundColor (:background theme)
+            :borderColor "rgba(98, 114, 164, 0.1)"
             :height 60
             :margin 0}
+           :hourTitle
+           {:color (:foreground theme)}
            :todo
            {:flex 1
             :padding 10
             :borderRadius 10
             :marginHorizontal 5
             :alignItems "center"
-            :backgroundColor "#ffb86c"
+            :backgroundColor (:orange theme)
             :justifyContent "center"}
            :event
            {:flex 1
@@ -33,13 +42,14 @@
             :borderRadius 10
             :marginHorizontal 5
             :alignItems "center"
-            :backgroundColor "#50fa7b"
+            :backgroundColor (:green theme)
             :justifyContent "center"}
            :date
            {:justifyContent "center"
             :alignItems "center"}
            :dateTitle
            {:fontSize 20
+            :color (:foreground theme)
             :fontWeight "bold"}
            :title
            {:fontSize 15
@@ -49,7 +59,7 @@
             :flexDirection "row"
             :height "100%"
             :width "85%"
-            :backgroundColor "rgba(0, 0, 20, 0.2)"
+            :backgroundColor "rgba(68, 71, 90, 0.2)"
             :marginLeft "15%"}}
           (clj->js)
           (rn/StyleSheet.create)))
@@ -111,9 +121,9 @@
 (defn- hour-view [num]
   (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
     [:> rn/View {:style (.-hour styles)}
-     [:> rn/Text text]]))
+     [:> rn/Text {:style (.-hourTitle styles)} text]]))
 
-(defn relate-intervals
+(defn- relate-intervals
   [events date]
   (let [month-dates (calendar-dates
                      (t/int (t/year date))

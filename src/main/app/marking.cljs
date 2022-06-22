@@ -2,12 +2,15 @@
   (:require
    [app.utils :as u :refer (date->> interval->>)]
    [tick.core :as t]
+   [app.views.themes
+    :refer (dracula)
+    :rename {dracula theme}]
    [tick.alpha.interval :as t.i]))
 
 (def decoration-color
   {:space "transparent"
-   :events "#50fa7b"
-   :todos "#ffb86c"})
+   :events (:cyan theme)
+   :todos (:orange theme)})
 
 (defn- insert-vector [a start b]
   (let [length (count a)
