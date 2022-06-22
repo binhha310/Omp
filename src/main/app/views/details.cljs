@@ -103,7 +103,7 @@
 
 (defn- todo-view
   [navigation event]
-   (let [navigate #(.navigate navigation "EventDetail", event)]
+   (let [navigate #(.navigate navigation "TodoDetail", event)]
      (fn []
        [:> rn/TouchableOpacity {:style (.-todo styles) :on-press navigate}
         [:> rn/Text {:style (.-title styles)} (:name event)]])))

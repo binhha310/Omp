@@ -7,7 +7,7 @@
    ["react-native-paper" :refer (Provider)]
    ["@react-navigation/native" :refer (NavigationContainer)]
    ["@react-navigation/native-stack" :refer (createNativeStackNavigator)]
-   [app.views.edit-views :refer (event-add-view todo-add-view event-update-view)]
+   [app.views.edit-views :refer (event-add-view todo-add-view event-update-view todo-update-view)]
    [app.events]
    [app.subs]
    [app.views.details :refer (details-view)]
@@ -34,7 +34,8 @@
         NewEvent (r/reactify-component event-add-view)
         NewTodo (r/reactify-component todo-add-view)
         Details (r/reactify-component details-view)
-        EventDetail (r/reactify-component event-update-view)]
+        EventDetail (r/reactify-component event-update-view)
+        TodoDetail (r/reactify-component todo-update-view)]
     (fn []
       [:> NavigationContainer
        [:> (.-Navigator Stack) {:screenOptions​ {:headerShown false}}
@@ -55,6 +56,10 @@
                               :options {:headerShown false}}]
         [:> (.-Screen Stack) {:name "EventDetail"
                               :component EventDetail
+                              :options {:headerShown true
+                                        :title "Detail"}}]
+        [:> (.-Screen Stack) {:name "TodoDetail"
+                              :component TodoDetail
                               :options {:headerShown true
                                         :title "Detail"}}]]])))
 

@@ -240,7 +240,7 @@
                 :new new}]])))
 
 ;; use today for deault time
-(defn todo-view [default]
+(defn todo-view [default action]
   (let [new (r/atom default)
         name (r/cursor new [:name])
         repeat (r/cursor new [:repeat])
@@ -251,9 +251,21 @@
        [marking-description "Todo"]
        [todo-time time]
        [marking-repeat repeat]
-       [save-button {:navigation navigation
-              :type :todos
-              :new new}]])))
+       [action {:navigation navigation
+                :type :todos
+                :new new}]])))
+
+(defn- update-view [view {:keys [navigation route]}]
+  (let [marking (.-params route)
+        update-view (view marking update-button)]
+    [:> rn/View {:style (.-container styles)}
+     (when (:id marking)
+       [fab {:style (.-deleteFab styles)
+             :icon "delete"
+             :callback #(delete {:navigation navigation
+                                 :type :events
+                                 :id (:id marking)})}])
+     [update-view {:navigation navigation}]]))
 
 (def event-default {:name ""
                     :time (interval (now) (tomorrow))
@@ -261,20 +273,10 @@
 
 (def event-add-view (event-view event-default save-button))
 
-(defn event-update-view [{:keys [navigation route]}]
-  (let [event (.-params route)
-        update-view (event-view event update-button)]
-    [:> rn/View {:style (.-container styles)}
-     (when (:id event)
-       [fab {:style (.-deleteFab styles)
-             :icon "delete"
-             :callback #(delete {:navigation navigation
-                                 :type :events
-                                 :id (:id event)})}])
-     [update-view {:navigation navigation}]]))
-
+(def event-update-view (partial update-view event-view))
 (def todo-default {:name ""
                    :time (now)
                    :repeat :no})
 
-(def todo-add-view (todo-view todo-default))
+(def todo-add-view (todo-view todo-default save-button))
+(def todo-update-view (partial update-view todo-view))
