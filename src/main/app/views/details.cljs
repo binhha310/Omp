@@ -10,7 +10,7 @@
     :rename {dracula theme}]
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
    [app.marking :refer (marking-loop event-relevant? todo-relevant?)]
-   [app.utils :refer (interval->> calendar-dates)]))
+   [app.utils :refer (interval->> date->> calendar-dates)]))
 
 (def styles
   ^js (-> {:horizontal
@@ -42,7 +42,7 @@
             :borderRadius 10
             :marginHorizontal 5
             :alignItems "center"
-            :backgroundColor (:green theme)
+            :backgroundColor (:cyan theme)
             :justifyContent "center"}
            :date
            {:justifyContent "center"
@@ -71,13 +71,17 @@
   (when (and (s/valid? ::date date) (s/valid? ::interval interval))
     (t.i/relation date interval)))
 
-(defn has-close-relation? [date interval]
-  (#{:overlapped-by
-     :starts
-     :during
-     :contains
-     :finishes
-     :overlaps} (relation date interval)))
+(defn has-close-relation? [date time]
+  (if-not (t/date? time)
+    (#{:overlapped-by
+       :starts
+       :during
+       :contains
+       :finishes
+       :overlaps}
+     (relation date time))
+    (#{:equals}
+     (relation date time))))
 
 (defn- handle-relation [date interval]
   (let [relation (relation date interval)
@@ -112,11 +116,11 @@
         [:> rn/Text {:style (.-title styles)} (:name event)]]))))
 
 (defn- todo-view
-  [navigation event]
-   (let [navigate #(.navigate navigation "TodoDetail", event)]
+  [navigation todo]
+   (let [navigate #(.navigate navigation "TodoDetail", todo)]
      (fn []
        [:> rn/TouchableOpacity {:style (.-todo styles) :on-press navigate}
-        [:> rn/Text {:style (.-title styles)} (:name event)]])))
+        [:> rn/Text {:style (.-title styles)} (:name todo)]])))
 
 (defn- hour-view [num]
   (let [text (if (> 10 num) (str 0 num ":00") (str num ":00"))]
@@ -130,18 +134,34 @@
                      (t/int (t/month date)))
         first-day (first month-dates)
         last-day (last month-dates)
-        this-month? (partial event-relevant? first-day last-day)]
+        this-month? (partial event-relevant? first-day last-day)
+              relevant-to-date (partial has-close-relation? date)]
     (loop [events events
            result {}]
       (if-not (seq events)
         result
         (let [e (first events)
-              relevant-to-date (partial has-close-relation? date)
               intervals (->> e
                              (marking-loop this-month? interval->>)
                              (filter relevant-to-date))]
           (recur (rest events)
                  (assoc-in result [(:id e)] intervals)))))))
+
+(defn- relate-todos
+  [todos date]
+  (let [month-dates (calendar-dates
+                     (t/int (t/year date))
+                     (t/int (t/month date)))
+        first-day (first month-dates)
+        last-day (last month-dates)
+        this-month? (partial todo-relevant? first-day last-day)
+        relevant (partial has-close-relation? date)]
+    (for [t todos
+          :let [dates (->> t
+                           (marking-loop this-month? date->>)
+                           (filter relevant))]
+          :when (seq dates)]
+      t)))
 
 (defn- get-event [events id]
   (first
@@ -181,12 +201,13 @@
     (fn []
       (let [events (:events @data)
             todos (:todos @data)
+            relate-todos (relate-todos todos date)
             relate-intervals (relate-intervals events date)
             event-interval-pairs (pair! events relate-intervals)
             full-days (filter full? event-interval-pairs)
             partials (filter (complement full?) event-interval-pairs)]
         [:> rn/View {:style (.-container styles)}
-         [day-view navigation date todos full-days]
+         [day-view navigation date relate-todos full-days]
          [:> rn/ScrollView {:style (.-container styles)}
           (for [i (range 24)]
             [hour-view i])

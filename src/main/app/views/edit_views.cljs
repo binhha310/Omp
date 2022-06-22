@@ -126,7 +126,7 @@
   (fn []
     [:> Button {:mode "contained"
                 :disabled (when disabled @disabled)
-                :color (:pink theme)
+                :color (:green theme)
                 :on-press #(do
                              (dispatch [:add-data
                                         {:type type
@@ -138,7 +138,7 @@
   (fn []
     [:> Button {:mode "contained"
                 :disabled (when disabled @disabled)
-                :color (:pink theme)
+                :color (:green theme)
                 :on-press #(do
                              (dispatch [:update-data
                                         {:type type
