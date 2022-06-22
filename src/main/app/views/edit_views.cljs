@@ -255,7 +255,7 @@
                 :type :todos
                 :new new}]])))
 
-(defn- update-view [view {:keys [navigation route]}]
+(defn- update-view [view type {:keys [navigation route]}]
   (let [marking (.-params route)
         update-view (view marking update-button)]
     [:> rn/View {:style (.-container styles)}
@@ -263,7 +263,7 @@
        [fab {:style (.-deleteFab styles)
              :icon "delete"
              :callback #(delete {:navigation navigation
-                                 :type :events
+                                 :type type
                                  :id (:id marking)})}])
      [update-view {:navigation navigation}]]))
 
@@ -273,10 +273,10 @@
 
 (def event-add-view (event-view event-default save-button))
 
-(def event-update-view (partial update-view event-view))
+(def event-update-view (partial update-view event-view :events))
 (def todo-default {:name ""
                    :time (now)
                    :repeat :no})
 
 (def todo-add-view (todo-view todo-default save-button))
-(def todo-update-view (partial update-view todo-view))
+(def todo-update-view (partial update-view todo-view :todos))
