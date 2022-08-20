@@ -44,27 +44,47 @@
                    (date-compare < next-month date))))]
     (filter (partial month? month) (year-dates year))))
 
-(defn first-calview-monday [year month]
+(comment (defn first-calview-monday [year month]
   (let [fst (t/new-date year month 1)
         weekday (->> fst
                      t/day-of-week
                      t/int)
         fst-monday (last (take weekday (iterate t/dec fst)))]
-    fst-monday))
+    fst-monday)))
 
-(defn last-calview-sunday [year month]
+(defn first-day-of-month [year month]
+  (t/new-date year month 1))
+
+(defn last-day-of-month [year month]
+  (let [next-month (if (= month 12) 1 (+ month 1))
+        f (if (= next-month 1) (t/new-date (+ year 1) 1 1) (t/new-date year next-month 1))]
+    (t/<< f 1)))
+
+(defn first-calview-monday [year month]
+  (let [f (first-day-of-month year month)
+        n (t/<< f (t/day-of-month f))
+        monday (t/>> n (- 8 (t/int (t/day-of-week (t/>> n 7)))))]
+    (if (> (t/day-of-month monday) 1) (t/<< monday 7) monday)))
+
+(comment (defn last-calview-sunday [year month]
   (let [fst-next (t/dec (t/new-date year (inc month) 1))
         weekday (->> fst-next
                      t/day-of-week
                      t/int)
         lst-sunday (last (take (- 8 weekday) (iterate t/inc fst-next)))]
-    lst-sunday))
+    lst-sunday)))
 
+(defn last-calview-sunday [year month]
+  (let [next-month (if (= month 12) 1 (+ month 1))
+        monday (if (= next-month 1) (first-calview-monday (+ year 1) 1) (first-calview-monday year next-month))
+        sunday (t/<< monday 1)]
+    (if (< (t/day-of-month sunday) (t/day-of-month (last-day-of-month year month))) (t/>> sunday 7) sunday)))
+
+;;Return month's sequence of dates
 (defn calendar-dates [year month]
-  (let [first (first-calview-monday year month)
-        last (last-calview-sunday year month)
-        f (fn [date] (and (t/<= first date) (t/>= last date)))]
-    (filter f (year-dates year))))
+  (let [f (first-calview-monday year month)
+        l (last-calview-sunday year month)]
+    (take-while (partial t/>= l) (iterate t/inc f))))
 
 (defn include? [interval date]
   (case (t.i/relation interval date)
