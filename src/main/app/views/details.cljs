@@ -9,7 +9,9 @@
     :refer (dracula)
     :rename {dracula theme}]
    [re-frame.core :refer (dispatch-sync dispatch clear-subscription-cache! subscribe)]
-   [app.marking :refer (marking-loop event-relevant? todo-relevant?)]
+   [app.calendar.event :refer (relevant?) :rename {relevant? event-relevant?}]
+   [app.calendar.todo :refer (relevant?) :rename {relevant? todo-relevant?}]
+   [app.calendar.decor-factory :refer (marking-repeat)]
    [app.utils :refer (interval->> date->> calendar-dates)]))
 
 (def styles
@@ -142,7 +144,7 @@
         result
         (let [e (first events)
               intervals (->> e
-                             (marking-loop this-month? interval->>)
+                             (marking-repeat this-month? interval->>)
                              (filter relevant-to-date))]
           (recur (rest events)
                  (assoc-in result [(:id e)] intervals)))))))
@@ -158,7 +160,7 @@
         relevant (partial has-close-relation? date)]
     (for [t todos
           :let [dates (->> t
-                           (marking-loop this-month? date->>)
+                           (marking-repeat this-month? date->>)
                            (filter relevant))]
           :when (seq dates)]
       t)))

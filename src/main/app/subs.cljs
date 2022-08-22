@@ -1,7 +1,7 @@
 (ns app.subs
   (:require
    [app.utils :refer (month year)]
-   [app.marking :refer (month-decoration)]
+   [app.calendar.marking :refer (month-decoration)]
    [re-frame.core :refer (subscribe reg-sub)]))
 
 (reg-sub

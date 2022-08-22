@@ -1,8 +1,8 @@
-(ns app.calendar
+(ns app.calendar.view
   (:require
    ["react-native-calendars" :refer (Calendar)]
    [tick.core :as t]
-   [app.marking :refer (month-decoration)]
+   [app.calendar.marking :refer (month-decoration)]
    [reagent.core :as r]
    [app.utils :refer (calendar-dates year month)]
    [re-frame.core :as rf]))

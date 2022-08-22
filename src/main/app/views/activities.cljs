@@ -5,7 +5,7 @@
    [app.views.themes
     :refer (dracula)
     :rename {dracula theme}]
-   [app.calendar :refer (calendar)]))
+   [app.calendar.view :refer (calendar)]))
 
 (def styles
   ^js (-> {:addFab
